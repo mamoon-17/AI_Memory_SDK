@@ -19,6 +19,18 @@ The default Python install includes `sqlite-vec`. The SDK loads the extension on
 
 If the host Python/SQLite build cannot load extensions, facts and embeddings are still persisted normally. Retrieval safely falls back to in-process cosine ranking and then lexical ranking instead of making the local SDK unusable. Python builds with loadable SQLite extensions are therefore recommended for the default accelerated path.
 
+## Memory Studio
+
+Memory Studio is a deliberately small, local-only, read-only inspection UI that reuses the same `Memory` retrieval path as the SDK. It does not introduce a second backend or persistence layer.
+
+After installing the package, point it at an existing SQLite database and a user scope:
+
+```bash
+memory-studio --db memory.db --user-id user-123
+```
+
+Then open `http://127.0.0.1:8765`. The first slice supports listing and searching memories and inspecting kind, key, value, importance, and created/updated timestamps. The default bind address is loopback-only.
+
 ## Roadmap
 
 - Phase 0: core save/retrieve pipeline.
