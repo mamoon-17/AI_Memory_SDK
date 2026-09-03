@@ -18,20 +18,21 @@
 - GitHub Actions lint/test workflow.
 - Phase 0 and Phase 1 validated green in GitHub Actions.
 - Phase 2 Memory Studio: local read-only UI with user discovery/switching, search, memory-kind filtering with counts, visible/total summary counts, user-scoped memory detail pages, preserved filter navigation, HTML escaping, loopback-only default binding, CLI entry point, tests, and README usage docs.
-- Memory Studio user discovery/detail slice validated green in GitHub Actions.
-- Final Memory Studio inspection polish implemented in `bae7e1d20ebb977d962a8dc143d737bd40e47630`.
+- Final Memory Studio inspection polish in `bae7e1d20ebb977d962a8dc143d737bd40e47630` validated green in GitHub Actions.
+- Phase 2 complete.
+- Phase 3 first slice: user-scoped `Memory.forget()`, local stdin/stdout `memory-sdk-bridge`, and n8n community node package scaffold exposing Save / Retrieve / Search / Forget.
 
 ## Current milestone
 
-Phase 2 — Memory Studio final validation.
+Phase 3 — n8n community node package.
 
 ## Validation status
 
-Latest `main` was green before the final Memory Studio filter/count polish. The final Phase 2 slice must pass GitHub Actions before Phase 2 is marked complete.
+Phase 2 is green. The first Phase 3 slice must pass Python lint/tests plus n8n TypeScript typecheck/build in GitHub Actions before additional integration work.
 
 ## Next action
 
-Inspect CI for the final Memory Studio filter/count polish. If green, mark Phase 2 complete and start Phase 3 with the minimal n8n community node package scaffold and the Save / Retrieve / Search / Forget operation contract. Do not add a hosted service; keep the integration local-first.
+Inspect CI for the first Phase 3 slice. If green, add focused bridge process/integration tests and package metadata/publishing polish needed for installing the community node in self-hosted n8n. Do not add a hosted service or duplicate SDK storage logic in TypeScript.
 
 ## Architectural guardrails
 
@@ -41,4 +42,5 @@ Inspect CI for the final Memory Studio filter/count polish. If green, mark Phase
 - LiteLLM for provider-agnostic extraction.
 - LangGraph in-process orchestration.
 - Memory Studio remains local and read-only.
+- n8n integration calls the local Python SDK through a narrow bridge rather than reimplementing memory semantics.
 - No hosted SaaS, Kubernetes, Neo4j, Redis, or Celery in the default profile.

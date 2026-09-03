@@ -58,6 +58,13 @@ class Memory:
             self.store.save_fact(fact)
         return saved
 
+    def forget(self, *, user_id: str, memory_id: str) -> bool:
+        """Delete one memory only when it belongs to the requested user scope."""
+        fact = self.store.get_fact(user_id=user_id, fact_id=memory_id)
+        if fact is None:
+            return False
+        return self.store.delete_fact(memory_id)
+
     def retrieve(self, *, user_id: str, query: str | None = None, limit: int = 10) -> list[MemoryFact]:
         """Retrieve user-scoped facts with relevance, importance, and recency ranking."""
         if limit < 1:

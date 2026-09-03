@@ -1,0 +1,25 @@
+{
+  "name": "n8n-nodes-ai-memory-sdk",
+  "version": "0.1.0",
+  "description": "Local-first n8n community node for AI Memory SDK",
+  "license": "MIT",
+  "keywords": ["n8n-community-node-package", "n8n", "memory", "ai"],
+  "main": "dist/nodes/AiMemory/AiMemory.node.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json && node -e \"const fs=require('fs');fs.mkdirSync('dist/nodes/AiMemory',{recursive:true});fs.copyFileSync('nodes/AiMemory/aiMemory.svg','dist/nodes/AiMemory/aiMemory.svg')\"",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "files": ["dist"],
+  "n8n": {
+    "n8nNodesApiVersion": 1,
+    "nodes": ["dist/nodes/AiMemory/AiMemory.node.js"]
+  },
+  "peerDependencies": {
+    "n8n-workflow": ">=1.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "n8n-workflow": "^1.0.0",
+    "typescript": "^5.7.0"
+  }
+}

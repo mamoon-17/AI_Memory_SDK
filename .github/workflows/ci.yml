@@ -20,3 +20,19 @@ jobs:
         run: ruff check .
       - name: Test
         run: pytest -q
+
+  n8n:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: n8n/package.json
+      - name: Install n8n node dependencies
+        run: npm install --prefix n8n
+      - name: Typecheck n8n node
+        run: npm run --prefix n8n typecheck
+      - name: Build n8n node
+        run: npm run --prefix n8n build

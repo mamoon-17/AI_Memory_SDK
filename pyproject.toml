@@ -20,6 +20,7 @@ dependencies = [
 
 [project.scripts]
 memory-studio = "memory_sdk.studio:main"
+memory-sdk-bridge = "memory_sdk.n8n_bridge:main"
 
 [project.optional-dependencies]
 dev = [

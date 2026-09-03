@@ -11,7 +11,7 @@ A local-first, zero-recurring-cost long-term memory engine for AI agents and n8n
 - LangGraph runs in-process for orchestration.
 - No hosted SaaS, Kubernetes, Neo4j, Redis, or Celery in the default profile.
 - Memory Studio is a local web UI.
-- n8n distribution will expose Save, Retrieve, Search, and Forget nodes.
+- n8n distribution exposes Save, Retrieve, Search, and Forget operations.
 
 ## Local vector search
 
@@ -38,6 +38,12 @@ memory-studio --db memory.db --user-id user-123
 ```
 
 The default bind address is loopback-only. Studio remains read-only and shows memory kind, key, value, importance, embedding presence, and created/updated timestamps. The `--limit` option controls the maximum number of retrieved memories shown for the selected user.
+
+## n8n community node
+
+Phase 3 lives in `n8n/` as `n8n-nodes-ai-memory-sdk`. The node keeps the architecture local-first by invoking the installed Python SDK through the `memory-sdk-bridge` executable instead of duplicating storage and ranking logic in TypeScript. It exposes Save, Retrieve, Search, and Forget operations for self-hosted n8n.
+
+The Python SDK and n8n must share access to the configured SQLite path. Text Save uses LiteLLM extraction, Search uses local FastEmbed embeddings, and Forget is scoped by both user ID and memory ID.
 
 ## Roadmap
 
