@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+import json
+import subprocess
+import sys
+
 from memory_sdk.client import Memory
 from memory_sdk.config import MemoryConfig
 from memory_sdk.n8n_bridge import execute
@@ -65,3 +69,36 @@ def test_bridge_rejects_cross_user_forget(tmp_path) -> None:
         database_path=database_path,
     )
     assert result == {"forgotten": False}
+
+
+def _run_bridge(database_path: str, payload: dict[str, object]) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        [sys.executable, "-m", "memory_sdk.n8n_bridge", "--db", database_path],
+        input=json.dumps(payload),
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+
+def test_bridge_process_round_trip(tmp_path) -> None:
+    database_path = str(tmp_path / "memory.db")
+    saved = _run_bridge(
+        database_path,
+        {"operation": "save", "userId": "alice", "key": "editor", "value": "VS Code"},
+    )
+    assert saved.returncode == 0, saved.stderr
+    memory_id = json.loads(saved.stdout)["memories"][0]["id"]
+
+    retrieved = _run_bridge(
+        database_path,
+        {"operation": "retrieve", "userId": "alice", "limit": 10},
+    )
+    assert retrieved.returncode == 0, retrieved.stderr
+    assert json.loads(retrieved.stdout)["memories"][0]["id"] == memory_id
+
+
+def test_bridge_process_reports_invalid_input(tmp_path) -> None:
+    result = _run_bridge(str(tmp_path / "memory.db"), {"operation": "retrieve"})
+    assert result.returncode == 1
+    assert "userId is required" in result.stderr

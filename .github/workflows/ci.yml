@@ -36,3 +36,5 @@ jobs:
         run: npm run --prefix n8n typecheck
       - name: Build n8n node
         run: npm run --prefix n8n build
+      - name: Validate npm package contents
+        run: cd n8n && npm pack --dry-run

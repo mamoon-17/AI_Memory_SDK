@@ -14,13 +14,13 @@
 - Embedding persistence in SQLite.
 - sqlite-vec default dependency, lazy extension loading, dimension-aware vector table migration/backfill, and user-scoped database-side KNN retrieval.
 - Safe in-process cosine and lexical fallbacks when sqlite-vec cannot load or cannot serve the configured dimension.
-- Unit coverage for user isolation, ranking, invalid limits, pipeline deduplication, blank input, conflict replacement, importance policy, time decay, vector ranking, sqlite-vec user scoping, and delayed-extension backfill.
 - GitHub Actions lint/test workflow.
 - Phase 0 and Phase 1 validated green in GitHub Actions.
 - Phase 2 Memory Studio: local read-only UI with user discovery/switching, search, memory-kind filtering with counts, visible/total summary counts, user-scoped memory detail pages, preserved filter navigation, HTML escaping, loopback-only default binding, CLI entry point, tests, and README usage docs.
 - Final Memory Studio inspection polish in `bae7e1d20ebb977d962a8dc143d737bd40e47630` validated green in GitHub Actions.
 - Phase 2 complete.
-- Phase 3 first slice: user-scoped `Memory.forget()`, local stdin/stdout `memory-sdk-bridge`, and n8n community node package scaffold exposing Save / Retrieve / Search / Forget.
+- Phase 3 first slice: user-scoped `Memory.forget()`, local stdin/stdout `memory-sdk-bridge`, and n8n community node package exposing Save / Retrieve / Search / Forget.
+- Phase 3 scaffold fixed for installed n8n-workflow connection typing and validated green in Python and n8n CI on `82b8a61e82720e6a9c8151c829caf075a8de78f1`.
 
 ## Current milestone
 
@@ -28,11 +28,11 @@ Phase 3 — n8n community node package.
 
 ## Validation status
 
-Phase 2 is green. The first Phase 3 slice must pass Python lint/tests plus n8n TypeScript typecheck/build in GitHub Actions before additional integration work.
+The core Phase 3 scaffold is green: Python install/Ruff/pytest and n8n npm install/typecheck/build all pass. Process-level bridge tests and npm pack validation are the current validation slice.
 
 ## Next action
 
-Inspect CI for the first Phase 3 slice. If green, add focused bridge process/integration tests and package metadata/publishing polish needed for installing the community node in self-hosted n8n. Do not add a hosted service or duplicate SDK storage logic in TypeScript.
+Inspect CI for the bridge-process and npm-pack validation slice. If green, test installation/loading against a real self-hosted n8n runtime when available and then decide whether Phase 3 is complete enough to proceed to the optional Phase 4 stretch work. Do not add a hosted service or duplicate SDK storage logic in TypeScript.
 
 ## Architectural guardrails
 

@@ -3,15 +3,29 @@
   "version": "0.1.0",
   "description": "Local-first n8n community node for AI Memory SDK",
   "license": "MIT",
+  "homepage": "https://github.com/mamoon-17/AI_Memory_SDK",
+  "author": {
+    "name": "Muhammad Mamoon Chishti"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mamoon-17/AI_Memory_SDK.git",
+    "directory": "n8n"
+  },
+  "engines": {
+    "node": ">=22"
+  },
   "keywords": ["n8n-community-node-package", "n8n", "memory", "ai"],
   "main": "dist/nodes/AiMemory/AiMemory.node.js",
   "scripts": {
     "build": "tsc -p tsconfig.json && node -e \"const fs=require('fs');fs.mkdirSync('dist/nodes/AiMemory',{recursive:true});fs.copyFileSync('nodes/AiMemory/aiMemory.svg','dist/nodes/AiMemory/aiMemory.svg')\"",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "prepublishOnly": "npm run typecheck && npm run build"
   },
   "files": ["dist"],
   "n8n": {
     "n8nNodesApiVersion": 1,
+    "strict": true,
     "nodes": ["dist/nodes/AiMemory/AiMemory.node.js"]
   },
   "peerDependencies": {
