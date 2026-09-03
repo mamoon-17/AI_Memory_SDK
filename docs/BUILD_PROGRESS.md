@@ -19,6 +19,7 @@
 - Phase 0 and Phase 1 validated green in GitHub Actions.
 - Phase 2 Memory Studio: local read-only UI with user discovery/switching, search, memory-kind filtering with counts, visible/total summary counts, user-scoped memory detail pages, preserved filter navigation, HTML escaping, loopback-only default binding, CLI entry point, tests, and README usage docs.
 - Memory Studio user discovery/detail slice validated green in GitHub Actions.
+- Final Memory Studio inspection polish implemented in `bae7e1d20ebb977d962a8dc143d737bd40e47630`.
 
 ## Current milestone
 
