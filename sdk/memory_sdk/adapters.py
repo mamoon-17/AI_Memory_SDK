@@ -43,7 +43,7 @@ class LiteLLMFactExtractor:
         payload = json.loads(content)
         facts = payload.get("facts", [])
         if not isinstance(facts, list):
-            raise ValueError("LiteLLM extractor response must contain a facts array")
+            raise TypeError("LiteLLM extractor response must contain a facts array")
         return [ExtractedFact.model_validate(item) for item in facts]
 
 
