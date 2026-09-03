@@ -1,7 +1,6 @@
 from datetime import UTC, datetime, timedelta
 
 import pytest
-
 from memory_sdk import ExtractedFact
 from memory_sdk.quality import recency_score, score_importance
 
