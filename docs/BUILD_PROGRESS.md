@@ -18,6 +18,7 @@
 - GitHub Actions lint/test workflow.
 - CI lint regression from the provider/pipeline slice fixed.
 - Phase 1 quality-policy head validated green in GitHub Actions after fixing import-order lint.
+- Phase 2 first slice: local read-only Memory Studio with user-scoped list/search, metadata inspection, HTML escaping, loopback-only default binding, CLI entry point, tests, and README usage docs.
 
 ## Current milestone
 
@@ -25,11 +26,11 @@ Phase 2 — Memory Studio.
 
 ## Validation status
 
-Phase 1 is complete and green in GitHub Actions: installation, Ruff, and pytest all passed on the final quality-policy head.
+Phase 1 is complete and green in GitHub Actions. The first Memory Studio slice has been pushed and its GitHub Actions validation is pending/in progress.
 
 ## Next action
 
-Begin Phase 2 Memory Studio with a deliberately small local read-only inspection surface first: list/search memories, inspect kind/key/value/importance/timestamps, and reuse the SDK/store APIs rather than duplicating storage logic. Keep it local-only and avoid introducing hosted services or a second persistence layer.
+First inspect the latest Memory Studio CI result and fix any lint/test/install regression before new work. If green, continue Phase 2 with user discovery/filtering and a focused memory-detail view while keeping Studio read-only and reusing the SDK/storage path.
 
 ## Architectural guardrails
 
@@ -38,5 +39,5 @@ Begin Phase 2 Memory Studio with a deliberately small local read-only inspection
 - Local FastEmbed/ONNX embeddings.
 - LiteLLM for provider-agnostic extraction.
 - LangGraph in-process orchestration.
-- Memory Studio remains local.
+- Memory Studio remains local and read-only until the inspection experience is solid.
 - No hosted SaaS, Kubernetes, Neo4j, Redis, or Celery in the default profile.
