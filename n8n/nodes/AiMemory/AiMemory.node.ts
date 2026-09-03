@@ -6,10 +6,13 @@ import type {
   INodeExecutionData,
   INodeType,
   INodeTypeDescription,
+  NodeConnectionType,
 } from 'n8n-workflow';
-import { NodeConnectionType, NodeOperationError } from 'n8n-workflow';
+import { NodeOperationError } from 'n8n-workflow';
 
 type BridgePayload = Record<string, unknown>;
+
+const mainConnection: NodeConnectionType = 'main';
 
 function runBridge(
   bridgeCommand: string,
@@ -60,8 +63,8 @@ export class AiMemory implements INodeType {
     defaults: {
       name: 'AI Memory SDK',
     },
-    inputs: [NodeConnectionType.Main],
-    outputs: [NodeConnectionType.Main],
+    inputs: [mainConnection],
+    outputs: [mainConnection],
     properties: [
       {
         displayName: 'Operation',
