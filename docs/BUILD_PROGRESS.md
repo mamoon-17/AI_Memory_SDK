@@ -17,19 +17,19 @@
 - Unit coverage for user isolation, ranking, invalid limits, pipeline deduplication, blank input, conflict replacement, importance policy, time decay, vector ranking, sqlite-vec user scoping, and delayed-extension backfill.
 - GitHub Actions lint/test workflow.
 - CI lint regression from the provider/pipeline slice fixed.
-- Conflict-resolution head validated green in GitHub Actions.
+- Phase 1 quality-policy head validated green in GitHub Actions after fixing import-order lint.
 
 ## Current milestone
 
-Phase 1 — memory quality policies.
+Phase 2 — Memory Studio.
 
 ## Validation status
 
-The conflict-resolution head is green. Importance scoring and time-decay retrieval are implemented in the current change set and require GitHub Actions validation before Phase 1 is considered complete.
+Phase 1 is complete and green in GitHub Actions: installation, Ruff, and pytest all passed on the final quality-policy head.
 
 ## Next action
 
-Validate the Phase 1 quality-policy slice in GitHub Actions. If green, consider Phase 1 complete and begin Phase 2 Memory Studio with a deliberately small local read-only inspection surface first: list/search memories, inspect metadata/importance/timestamps, and preserve the SDK as the source of truth rather than duplicating storage logic.
+Begin Phase 2 Memory Studio with a deliberately small local read-only inspection surface first: list/search memories, inspect kind/key/value/importance/timestamps, and reuse the SDK/store APIs rather than duplicating storage logic. Keep it local-only and avoid introducing hosted services or a second persistence layer.
 
 ## Architectural guardrails
 
@@ -38,4 +38,5 @@ Validate the Phase 1 quality-policy slice in GitHub Actions. If green, consider 
 - Local FastEmbed/ONNX embeddings.
 - LiteLLM for provider-agnostic extraction.
 - LangGraph in-process orchestration.
+- Memory Studio remains local.
 - No hosted SaaS, Kubernetes, Neo4j, Redis, or Celery in the default profile.
