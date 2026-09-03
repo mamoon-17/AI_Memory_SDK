@@ -17,6 +17,15 @@ class ChangedLanguageExtractor:
         return [ExtractedFact(key="language", value="Rust", importance=0.9)]
 
 
+class QualityExtractor:
+    def extract(self, *, text: str, user_id: str) -> list[ExtractedFact]:
+        assert user_id == "alice"
+        return [
+            ExtractedFact(key="theme", value="dark mode", kind="preference", importance=0.5),
+            ExtractedFact(key="status", value="busy", kind="transient", importance=0.5),
+        ]
+
+
 class FakeEmbedder:
     def embed(self, texts: list[str]) -> list[list[float]]:
         vectors = []
@@ -45,6 +54,20 @@ def test_save_text_runs_pipeline_and_deduplicates(tmp_path):
     assert second == []
     assert len(memory.retrieve(user_id="alice")) == 2
     assert all(fact.embedding is not None for fact in first)
+
+
+def test_importance_scoring_runs_before_storage(tmp_path):
+    memory = Memory(
+        MemoryConfig(database_path=tmp_path / "memory.db"),
+        extractor=QualityExtractor(),
+        embedder=FakeEmbedder(),
+    )
+
+    saved = memory.save_text(user_id="alice", text="I prefer dark mode but am busy now")
+    by_key = {fact.key: fact for fact in saved}
+
+    assert by_key["theme"].importance > by_key["status"].importance
+    assert by_key["theme"].importance != 0.5
 
 
 def test_conflicting_fact_replaces_prior_value_for_same_user(tmp_path):

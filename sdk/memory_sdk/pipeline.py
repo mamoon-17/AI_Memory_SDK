@@ -6,6 +6,7 @@ from langgraph.graph import END, START, StateGraph
 
 from memory_sdk.models import MemoryFact
 from memory_sdk.providers import EmbeddingProvider, ExtractedFact, FactExtractor
+from memory_sdk.quality import score_importance
 from memory_sdk.storage.sqlite import SQLiteMemoryStore
 
 
@@ -16,13 +17,14 @@ class PipelineState(TypedDict, total=False):
     extracted: list[ExtractedFact]
     deduped: list[ExtractedFact]
     resolved: list[ExtractedFact]
+    scored: list[ExtractedFact]
     conflict_ids: list[str]
     embeddings: list[list[float]]
     saved: list[MemoryFact]
 
 
 class MemorySavePipeline:
-    """In-process LangGraph save pipeline with deterministic conflict resolution."""
+    """In-process LangGraph save pipeline with deterministic memory-quality policies."""
 
     def __init__(
         self,
@@ -42,13 +44,15 @@ class MemorySavePipeline:
         graph.add_node("extract", self._extract)
         graph.add_node("dedup", self._dedup)
         graph.add_node("conflict_resolution", self._resolve_conflicts)
+        graph.add_node("importance_score", self._score_importance)
         graph.add_node("embed", self._embed)
         graph.add_node("store", self._store)
         graph.add_edge(START, "classify")
         graph.add_edge("classify", "extract")
         graph.add_edge("extract", "dedup")
         graph.add_edge("dedup", "conflict_resolution")
-        graph.add_edge("conflict_resolution", "embed")
+        graph.add_edge("conflict_resolution", "importance_score")
+        graph.add_edge("importance_score", "embed")
         graph.add_edge("embed", "store")
         graph.add_edge("store", END)
         return graph.compile()
@@ -105,8 +109,15 @@ class MemorySavePipeline:
 
         return {"resolved": resolved, "conflict_ids": conflict_ids}
 
+    def _score_importance(self, state: PipelineState) -> PipelineState:
+        scored = [
+            fact.model_copy(update={"importance": score_importance(fact)})
+            for fact in state.get("resolved", [])
+        ]
+        return {"scored": scored}
+
     def _embed(self, state: PipelineState) -> PipelineState:
-        facts = state.get("resolved", [])
+        facts = state.get("scored", [])
         texts = [f"{fact.key}: {fact.value}" for fact in facts]
         embeddings = self.embedder.embed(texts)
         if len(embeddings) != len(facts):
@@ -114,7 +125,7 @@ class MemorySavePipeline:
         return {"embeddings": embeddings}
 
     def _store(self, state: PipelineState) -> PipelineState:
-        facts = state.get("resolved", [])
+        facts = state.get("scored", [])
         embeddings = state.get("embeddings", [])
         saved: list[MemoryFact] = []
         for extracted, embedding in zip(facts, embeddings, strict=True):

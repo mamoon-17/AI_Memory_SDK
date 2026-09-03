@@ -7,15 +7,17 @@
 - Public `Memory` client with user-scoped structured `save()` and `retrieve()` APIs.
 - Provider-neutral extraction and embedding protocols.
 - Lazy LiteLLM fact extraction and local FastEmbed/ONNX embedding adapters.
-- LangGraph in-process pipeline: classify → extract → exact dedup → conflict resolution → embed → store.
+- LangGraph in-process pipeline: classify → extract → exact dedup → conflict resolution → importance score → embed → store.
 - Deterministic Phase 1 conflict policy: for the same user + kind + key, a newly extracted different value supersedes the prior value; exact duplicates remain no-ops and other users are isolated.
+- Deterministic importance scoring combining extractor signal with memory-kind and value-specificity heuristics without another model call.
+- Retrieval quality ranking combines semantic/lexical relevance with stored importance and exponential time decay; no-query retrieval balances importance and recency.
 - Embedding persistence in SQLite.
 - sqlite-vec default dependency, lazy extension loading, dimension-aware vector table migration/backfill, and user-scoped database-side KNN retrieval.
 - Safe in-process cosine and lexical fallbacks when sqlite-vec cannot load or cannot serve the configured dimension.
-- Unit coverage for user isolation, ranking, invalid limits, pipeline deduplication, blank input, conflict replacement, vector ranking, sqlite-vec user scoping, and delayed-extension backfill.
+- Unit coverage for user isolation, ranking, invalid limits, pipeline deduplication, blank input, conflict replacement, importance policy, time decay, vector ranking, sqlite-vec user scoping, and delayed-extension backfill.
 - GitHub Actions lint/test workflow.
 - CI lint regression from the provider/pipeline slice fixed.
-- sqlite-vec slice validated green in GitHub Actions: install, Ruff, and pytest all passed.
+- Conflict-resolution head validated green in GitHub Actions.
 
 ## Current milestone
 
@@ -23,11 +25,11 @@ Phase 1 — memory quality policies.
 
 ## Validation status
 
-The sqlite-vec Phase 0 head is green in GitHub Actions. Conflict resolution is implemented as a deterministic, provider-free graph node and must be validated on the new head before continuing Phase 1.
+The conflict-resolution head is green. Importance scoring and time-decay retrieval are implemented in the current change set and require GitHub Actions validation before Phase 1 is considered complete.
 
 ## Next action
 
-Validate conflict resolution in GitHub Actions. If green, add a deterministic importance-scoring policy that combines extractor confidence with memory-type/value heuristics without requiring another model call, then incorporate time decay into retrieval scoring. Keep conflict replacement user-scoped and preserve sqlite-vec/cosine fallback behavior.
+Validate the Phase 1 quality-policy slice in GitHub Actions. If green, consider Phase 1 complete and begin Phase 2 Memory Studio with a deliberately small local read-only inspection surface first: list/search memories, inspect metadata/importance/timestamps, and preserve the SDK as the source of truth rather than duplicating storage logic.
 
 ## Architectural guardrails
 

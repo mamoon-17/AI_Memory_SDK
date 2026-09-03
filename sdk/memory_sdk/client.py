@@ -8,6 +8,7 @@ from memory_sdk.config import MemoryConfig
 from memory_sdk.models import MemoryFact
 from memory_sdk.pipeline import MemorySavePipeline
 from memory_sdk.providers import EmbeddingProvider, FactExtractor
+from memory_sdk.quality import recency_score
 from memory_sdk.storage.sqlite import SQLiteMemoryStore
 
 
@@ -48,7 +49,7 @@ class Memory:
         return fact
 
     def save_text(self, *, user_id: str, text: str) -> list[MemoryFact]:
-        """Extract, embed, deduplicate, and store durable facts from unstructured text."""
+        """Extract, score, embed, deduplicate, and store durable facts from unstructured text."""
         return self._get_pipeline().save_text(user_id=user_id, text=text)
 
     def save_many(self, facts: Iterable[MemoryFact]) -> list[MemoryFact]:
@@ -58,7 +59,7 @@ class Memory:
         return saved
 
     def retrieve(self, *, user_id: str, query: str | None = None, limit: int = 10) -> list[MemoryFact]:
-        """Retrieve user-scoped facts, preferring sqlite-vec when an embedder is configured."""
+        """Retrieve user-scoped facts with relevance, importance, and recency ranking."""
         if limit < 1:
             raise ValueError("limit must be at least 1")
 
@@ -67,19 +68,21 @@ class Memory:
             if len(query_vectors) != 1:
                 raise ValueError("embedding provider must return exactly one query vector")
             query_vector = query_vectors[0]
+            candidate_limit = min(max(limit * 4, limit), 100)
             database_ranked = self.store.search_by_vector(
                 user_id=user_id,
                 query_vector=query_vector,
-                limit=limit,
+                limit=candidate_limit,
             )
             if database_ranked:
-                return database_ranked
+                return self._rank_vectors(database_ranked, query_vector, limit)
         else:
             query_vector = None
 
         facts = self.store.list_facts(user_id)
         if not query or not query.strip():
-            return facts[-limit:][::-1]
+            ranked = sorted(facts, key=self._quality_score, reverse=True)
+            return ranked[:limit]
 
         if query_vector is not None:
             vector_ranked = self._rank_vectors(facts, query_vector, limit)
@@ -108,30 +111,46 @@ class Memory:
         )
         return self._pipeline
 
-    @staticmethod
+    @classmethod
     def _rank_vectors(
-        facts: list[MemoryFact], query_vector: list[float], limit: int
+        cls, facts: list[MemoryFact], query_vector: list[float], limit: int
     ) -> list[MemoryFact]:
-        scored: list[tuple[float, float, float, MemoryFact]] = []
+        scored: list[tuple[float, float, MemoryFact]] = []
         for fact in facts:
             if fact.embedding is None or len(fact.embedding) != len(query_vector):
                 continue
             similarity = _cosine_similarity(query_vector, fact.embedding)
-            scored.append((similarity, fact.importance, fact.updated_at.timestamp(), fact))
-        scored.sort(key=lambda item: item[:3], reverse=True)
-        return [item[3] for item in scored[:limit]]
+            combined = (0.70 * similarity) + (0.20 * fact.importance) + (0.10 * recency_score(fact.updated_at))
+            scored.append((combined, fact.updated_at.timestamp(), fact))
+        scored.sort(key=lambda item: item[:2], reverse=True)
+        return [item[2] for item in scored[:limit]]
 
-    @staticmethod
-    def _rank_lexically(facts: list[MemoryFact], query: str, limit: int) -> list[MemoryFact]:
+    @classmethod
+    def _rank_lexically(cls, facts: list[MemoryFact], query: str, limit: int) -> list[MemoryFact]:
         terms = {term.casefold() for term in query.split() if term.strip()}
+        if not terms:
+            return []
 
-        def score(fact: MemoryFact) -> tuple[int, float, float]:
+        scored: list[tuple[float, float, MemoryFact]] = []
+        for fact in facts:
             haystack = f"{fact.key} {fact.value}".casefold()
             matches = sum(term in haystack for term in terms)
-            return matches, fact.importance, fact.updated_at.timestamp()
+            if matches == 0:
+                continue
+            lexical_relevance = matches / len(terms)
+            combined = (
+                (0.70 * lexical_relevance)
+                + (0.20 * fact.importance)
+                + (0.10 * recency_score(fact.updated_at))
+            )
+            scored.append((combined, fact.updated_at.timestamp(), fact))
+        scored.sort(key=lambda item: item[:2], reverse=True)
+        return [item[2] for item in scored[:limit]]
 
-        ranked = sorted(facts, key=score, reverse=True)
-        return [fact for fact in ranked if score(fact)[0] > 0][:limit]
+    @staticmethod
+    def _quality_score(fact: MemoryFact) -> tuple[float, float]:
+        combined = (0.70 * fact.importance) + (0.30 * recency_score(fact.updated_at))
+        return combined, fact.updated_at.timestamp()
 
 
 def _cosine_similarity(left: list[float], right: list[float]) -> float:
