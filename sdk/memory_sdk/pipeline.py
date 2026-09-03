@@ -15,12 +15,14 @@ class PipelineState(TypedDict, total=False):
     should_store: bool
     extracted: list[ExtractedFact]
     deduped: list[ExtractedFact]
+    resolved: list[ExtractedFact]
+    conflict_ids: list[str]
     embeddings: list[list[float]]
     saved: list[MemoryFact]
 
 
 class MemorySavePipeline:
-    """In-process Phase 0 LangGraph pipeline for unstructured memory writes."""
+    """In-process LangGraph save pipeline with deterministic conflict resolution."""
 
     def __init__(
         self,
@@ -39,12 +41,14 @@ class MemorySavePipeline:
         graph.add_node("classify", self._classify)
         graph.add_node("extract", self._extract)
         graph.add_node("dedup", self._dedup)
+        graph.add_node("conflict_resolution", self._resolve_conflicts)
         graph.add_node("embed", self._embed)
         graph.add_node("store", self._store)
         graph.add_edge(START, "classify")
         graph.add_edge("classify", "extract")
         graph.add_edge("extract", "dedup")
-        graph.add_edge("dedup", "embed")
+        graph.add_edge("dedup", "conflict_resolution")
+        graph.add_edge("conflict_resolution", "embed")
         graph.add_edge("embed", "store")
         graph.add_edge("store", END)
         return graph.compile()
@@ -78,8 +82,31 @@ class MemorySavePipeline:
             deduped.append(fact)
         return {"deduped": deduped}
 
+    def _resolve_conflicts(self, state: PipelineState) -> PipelineState:
+        existing_by_slot: dict[tuple[str, str], list[MemoryFact]] = {}
+        for fact in self.store.list_facts(state["user_id"]):
+            slot = (fact.kind, fact.key.casefold())
+            existing_by_slot.setdefault(slot, []).append(fact)
+
+        resolved_by_slot: dict[tuple[str, str], ExtractedFact] = {}
+        slot_order: list[tuple[str, str]] = []
+        for fact in state.get("deduped", []):
+            slot = (fact.kind, fact.key.casefold())
+            if slot not in resolved_by_slot:
+                slot_order.append(slot)
+            resolved_by_slot[slot] = fact
+
+        resolved = [resolved_by_slot[slot] for slot in slot_order]
+        conflict_ids: list[str] = []
+        for slot, candidate in ((slot, resolved_by_slot[slot]) for slot in slot_order):
+            for existing in existing_by_slot.get(slot, []):
+                if existing.value.casefold() != candidate.value.casefold():
+                    conflict_ids.append(existing.id)
+
+        return {"resolved": resolved, "conflict_ids": conflict_ids}
+
     def _embed(self, state: PipelineState) -> PipelineState:
-        facts = state.get("deduped", [])
+        facts = state.get("resolved", [])
         texts = [f"{fact.key}: {fact.value}" for fact in facts]
         embeddings = self.embedder.embed(texts)
         if len(embeddings) != len(facts):
@@ -87,7 +114,7 @@ class MemorySavePipeline:
         return {"embeddings": embeddings}
 
     def _store(self, state: PipelineState) -> PipelineState:
-        facts = state.get("deduped", [])
+        facts = state.get("resolved", [])
         embeddings = state.get("embeddings", [])
         saved: list[MemoryFact] = []
         for extracted, embedding in zip(facts, embeddings, strict=True):
@@ -101,4 +128,7 @@ class MemorySavePipeline:
             )
             self.store.save_fact(fact)
             saved.append(fact)
+
+        for fact_id in dict.fromkeys(state.get("conflict_ids", [])):
+            self.store.delete_fact(fact_id)
         return {"saved": saved}

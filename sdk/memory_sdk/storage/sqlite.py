@@ -88,6 +88,38 @@ class SQLiteMemoryStore:
         if fact.embedding:
             self._sync_vector(fact)
 
+    def delete_fact(self, fact_id: str) -> bool:
+        """Delete one fact and its vector entry when sqlite-vec is available."""
+        with self._connect() as connection:
+            row = connection.execute(
+                "SELECT rowid FROM memory_facts WHERE id = ?", (fact_id,)
+            ).fetchone()
+        if row is None:
+            return False
+        rowid = row["rowid"]
+
+        vector_connection = self._vector_connection()
+        if vector_connection is not None:
+            connection, _sqlite_vec = vector_connection
+            try:
+                table = connection.execute(
+                    """
+                    SELECT 1 FROM sqlite_master
+                    WHERE type = 'table' AND name = 'memory_fact_vectors'
+                    """
+                ).fetchone()
+                if table is not None:
+                    connection.execute("DELETE FROM memory_fact_vectors WHERE rowid = ?", (rowid,))
+                    connection.commit()
+            except sqlite3.Error:
+                pass
+            finally:
+                connection.close()
+
+        with self._connect() as connection:
+            cursor = connection.execute("DELETE FROM memory_facts WHERE id = ?", (fact_id,))
+            return cursor.rowcount > 0
+
     def list_facts(self, user_id: str) -> list[MemoryFact]:
         with self._connect() as connection:
             rows = connection.execute(

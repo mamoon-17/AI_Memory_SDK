@@ -11,6 +11,12 @@ class FakeExtractor:
         ]
 
 
+class ChangedLanguageExtractor:
+    def extract(self, *, text: str, user_id: str) -> list[ExtractedFact]:
+        assert user_id == "alice"
+        return [ExtractedFact(key="language", value="Rust", importance=0.9)]
+
+
 class FakeEmbedder:
     def embed(self, texts: list[str]) -> list[list[float]]:
         vectors = []
@@ -39,6 +45,22 @@ def test_save_text_runs_pipeline_and_deduplicates(tmp_path):
     assert second == []
     assert len(memory.retrieve(user_id="alice")) == 2
     assert all(fact.embedding is not None for fact in first)
+
+
+def test_conflicting_fact_replaces_prior_value_for_same_user(tmp_path):
+    config = MemoryConfig(database_path=tmp_path / "memory.db")
+    memory = Memory(config, extractor=ChangedLanguageExtractor(), embedder=FakeEmbedder())
+    old_fact = memory.save(user_id="alice", key="language", value="Python", importance=0.8)
+    other_user_fact = memory.save(user_id="bob", key="language", value="Go", importance=0.7)
+
+    saved = memory.save_text(user_id="alice", text="I switched from Python to Rust")
+
+    alice_facts = memory.retrieve(user_id="alice")
+    bob_facts = memory.retrieve(user_id="bob")
+    assert [fact.value for fact in saved] == ["Rust"]
+    assert [fact.value for fact in alice_facts] == ["Rust"]
+    assert old_fact.id not in {fact.id for fact in alice_facts}
+    assert [fact.id for fact in bob_facts] == [other_user_fact.id]
 
 
 def test_retrieve_prefers_vector_similarity_when_embedder_is_available(tmp_path):
