@@ -38,3 +38,75 @@ jobs:
         run: npm run --prefix n8n build
       - name: Validate npm package contents
         run: cd n8n && npm pack --dry-run
+
+  n8n-runtime-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install local Python SDK and bridge
+        run: pip install -e .
+      - name: Build and pack community node
+        run: |
+          npm install --prefix n8n
+          npm run --prefix n8n build
+          mkdir -p "$RUNNER_TEMP/packages"
+          (cd n8n && npm pack --pack-destination "$RUNNER_TEMP/packages")
+      - name: Install package into a self-hosted n8n user folder
+        run: |
+          mkdir -p "$RUNNER_TEMP/n8n-user/nodes"
+          cd "$RUNNER_TEMP/n8n-user/nodes"
+          npm init -y
+          npm install "$RUNNER_TEMP"/packages/n8n-nodes-ai-memory-sdk-*.tgz
+      - name: Install pinned self-hosted n8n runtime
+        run: |
+          mkdir -p "$RUNNER_TEMP/n8n-runtime"
+          npm install --prefix "$RUNNER_TEMP/n8n-runtime" n8n@2.36.8
+      - name: Start n8n and verify AI Memory SDK node is registered
+        env:
+          N8N_USER_FOLDER: ${{ runner.temp }}/n8n-user
+          N8N_HOST: 127.0.0.1
+          N8N_PORT: '5679'
+          N8N_PROTOCOL: http
+          N8N_DIAGNOSTICS_ENABLED: 'false'
+          N8N_VERSION_NOTIFICATIONS_ENABLED: 'false'
+          N8N_COMMUNITY_PACKAGES_ENABLED: 'true'
+          N8N_SECURE_COOKIE: 'false'
+        run: |
+          set -euo pipefail
+          LOG="$RUNNER_TEMP/n8n-runtime.log"
+          "$RUNNER_TEMP/n8n-runtime/node_modules/.bin/n8n" start >"$LOG" 2>&1 &
+          N8N_PID=$!
+          trap 'kill "$N8N_PID" 2>/dev/null || true; cat "$LOG"' EXIT
+
+          for attempt in $(seq 1 60); do
+            if ! kill -0 "$N8N_PID" 2>/dev/null; then
+              echo "n8n exited before becoming healthy"
+              exit 1
+            fi
+            if curl --fail --silent http://127.0.0.1:5679/healthz >/dev/null; then
+              break
+            fi
+            sleep 1
+          done
+
+          curl --fail --silent http://127.0.0.1:5679/healthz >/dev/null
+          curl --fail --silent http://127.0.0.1:5679/rest/node-types >"$RUNNER_TEMP/node-types.json"
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          node_types = json.loads(Path(os.environ['RUNNER_TEMP']).joinpath('node-types.json').read_text())
+          serialized = json.dumps(node_types)
+          if 'aiMemory' not in serialized or 'AI Memory SDK' not in serialized:
+              raise SystemExit('AI Memory SDK community node was not registered by self-hosted n8n')
+          print('AI Memory SDK community node registered successfully')
+          PY

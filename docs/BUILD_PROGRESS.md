@@ -21,6 +21,7 @@
 - Phase 2 complete.
 - Phase 3 first slice: user-scoped `Memory.forget()`, local stdin/stdout `memory-sdk-bridge`, and n8n community node package exposing Save / Retrieve / Search / Forget.
 - Phase 3 scaffold fixed for installed n8n-workflow connection typing and validated green in Python and n8n CI on `82b8a61e82720e6a9c8151c829caf075a8de78f1`.
+- Phase 3 process-level bridge tests and npm package validation in `6048d91a884852e5cbcc600878be3ef638143778` validated green in GitHub Actions.
 
 ## Current milestone
 
@@ -28,11 +29,11 @@ Phase 3 — n8n community node package.
 
 ## Validation status
 
-The core Phase 3 scaffold is green: Python install/Ruff/pytest and n8n npm install/typecheck/build all pass. Process-level bridge tests and npm pack validation are the current validation slice.
+The package compiles, packs, and its Python bridge passes process-level tests. A pinned self-hosted n8n 2.36.8 runtime smoke check is now being added to CI: install the packed community node in an isolated n8n user folder, start n8n locally, wait for `/healthz`, and require `/rest/node-types` to expose `aiMemory` / `AI Memory SDK`.
 
 ## Next action
 
-Inspect CI for the bridge-process and npm-pack validation slice. If green, test installation/loading against a real self-hosted n8n runtime when available and then decide whether Phase 3 is complete enough to proceed to the optional Phase 4 stretch work. Do not add a hosted service or duplicate SDK storage logic in TypeScript.
+Inspect CI for the self-hosted n8n runtime smoke test. If it is green, mark Phase 3 complete and move to Phase 4 only as optional stretch work. If it fails, inspect the runtime logs and fix package loading/registration before any Phase 4 work. Do not add a hosted service or duplicate SDK storage logic in TypeScript.
 
 ## Architectural guardrails
 
