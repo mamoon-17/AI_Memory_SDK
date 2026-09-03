@@ -58,19 +58,31 @@ class Memory:
         return saved
 
     def retrieve(self, *, user_id: str, query: str | None = None, limit: int = 10) -> list[MemoryFact]:
-        """Retrieve user-scoped facts, preferring vectors when an embedder is configured."""
+        """Retrieve user-scoped facts, preferring sqlite-vec when an embedder is configured."""
         if limit < 1:
             raise ValueError("limit must be at least 1")
+
+        if query and query.strip() and self.embedder is not None:
+            query_vectors = self.embedder.embed([query])
+            if len(query_vectors) != 1:
+                raise ValueError("embedding provider must return exactly one query vector")
+            query_vector = query_vectors[0]
+            database_ranked = self.store.search_by_vector(
+                user_id=user_id,
+                query_vector=query_vector,
+                limit=limit,
+            )
+            if database_ranked:
+                return database_ranked
+        else:
+            query_vector = None
 
         facts = self.store.list_facts(user_id)
         if not query or not query.strip():
             return facts[-limit:][::-1]
 
-        if self.embedder is not None:
-            query_vectors = self.embedder.embed([query])
-            if len(query_vectors) != 1:
-                raise ValueError("embedding provider must return exactly one query vector")
-            vector_ranked = self._rank_vectors(facts, query_vectors[0], limit)
+        if query_vector is not None:
+            vector_ranked = self._rank_vectors(facts, query_vector, limit)
             if vector_ranked:
                 return vector_ranked
 

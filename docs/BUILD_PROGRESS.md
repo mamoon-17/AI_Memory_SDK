@@ -8,22 +8,24 @@
 - Provider-neutral extraction and embedding protocols.
 - Lazy LiteLLM fact extraction and local FastEmbed/ONNX embedding adapters.
 - LangGraph in-process Phase 0 save pipeline: classify → extract → exact dedup → embed → store.
-- Embedding persistence in SQLite plus vector similarity retrieval when an embedder is configured.
-- Deterministic lexical retrieval remains as a dependency/provider fallback.
-- Unit coverage for user isolation, ranking, invalid limits, pipeline deduplication, blank input, and vector ranking.
-- GitHub Actions lint/test workflow exists.
+- Embedding persistence in SQLite.
+- sqlite-vec default dependency, lazy extension loading, dimension-aware vector table migration/backfill, and user-scoped database-side KNN retrieval.
+- Safe in-process cosine and lexical fallbacks when sqlite-vec cannot load or cannot serve the configured dimension.
+- Unit coverage for user isolation, ranking, invalid limits, pipeline deduplication, blank input, vector ranking, sqlite-vec user scoping, and delayed-extension backfill.
+- GitHub Actions lint/test workflow.
+- CI lint regression from the provider/pipeline slice fixed; install, Ruff, and pytest returned green before vector-store work began.
 
 ## Current milestone
 
-Phase 0 — core memory pipeline.
+Phase 0 — core memory pipeline and default local vector storage.
 
 ## Validation status
 
-The provider/pipeline slice has deterministic provider-free tests using fakes. The repository CI is configured to install the package and run Ruff + pytest. CI status should be checked on the new head before this slice is considered fully green.
+The pre-vector-store head is green in GitHub Actions. The sqlite-vec slice is designed to exercise the real extension in CI while also testing the fallback/backfill path. The new head must pass Ruff and pytest before Phase 0 is considered stable.
 
 ## Next action
 
-Finish Phase 0 vector storage by integrating sqlite-vec for database-side nearest-neighbor search, while retaining a safe Python cosine fallback when the extension cannot load. Add migrations/tests for sqlite-vec availability and document the default local installation path. Do not begin Phase 1 conflict resolution until the vector store path is stable.
+Validate the sqlite-vec slice in GitHub Actions. If green, Phase 0 is stable enough to begin Phase 1 with conflict resolution first, then importance scoring and time decay. Preserve user scoping and deterministic provider-free tests while adding those policies to the LangGraph pipeline.
 
 ## Architectural guardrails
 

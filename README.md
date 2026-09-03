@@ -13,6 +13,12 @@ A local-first, zero-recurring-cost long-term memory engine for AI agents and n8n
 - Memory Studio is a local web UI.
 - n8n distribution will expose Save, Retrieve, Search, and Forget nodes.
 
+## Local vector search
+
+The default Python install includes `sqlite-vec`. The SDK loads the extension only when an embedding needs to be indexed or searched, creates the vector table lazily using the embedding dimension, and performs user-scoped KNN queries inside SQLite.
+
+If the host Python/SQLite build cannot load extensions, facts and embeddings are still persisted normally. Retrieval safely falls back to in-process cosine ranking and then lexical ranking instead of making the local SDK unusable. Python builds with loadable SQLite extensions are therefore recommended for the default accelerated path.
+
 ## Roadmap
 
 - Phase 0: core save/retrieve pipeline.
