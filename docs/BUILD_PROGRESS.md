@@ -16,23 +16,21 @@
 - Safe in-process cosine and lexical fallbacks when sqlite-vec cannot load or cannot serve the configured dimension.
 - Unit coverage for user isolation, ranking, invalid limits, pipeline deduplication, blank input, conflict replacement, importance policy, time decay, vector ranking, sqlite-vec user scoping, and delayed-extension backfill.
 - GitHub Actions lint/test workflow.
-- CI lint regression from the provider/pipeline slice fixed.
-- Phase 1 quality-policy head validated green in GitHub Actions after fixing import-order lint.
-- Phase 2 first slice: local read-only Memory Studio with user-scoped list/search, metadata inspection, HTML escaping, loopback-only default binding, CLI entry point, tests, and README usage docs.
-- First Memory Studio slice validated green in GitHub Actions.
-- Phase 2 second slice: local user discovery/filtering, optional initial user scope, user-scoped memory detail pages, safe navigation/query preservation, and storage tests preventing cross-user detail access.
+- Phase 0 and Phase 1 validated green in GitHub Actions.
+- Phase 2 Memory Studio: local read-only UI with user discovery/switching, search, memory-kind filtering with counts, visible/total summary counts, user-scoped memory detail pages, preserved filter navigation, HTML escaping, loopback-only default binding, CLI entry point, tests, and README usage docs.
+- Memory Studio user discovery/detail slice validated green in GitHub Actions.
 
 ## Current milestone
 
-Phase 2 — Memory Studio.
+Phase 2 — Memory Studio final validation.
 
 ## Validation status
 
-Phase 1 is complete and green in GitHub Actions. The first Memory Studio slice is green. The second Studio slice is implemented and awaiting CI validation.
+Latest `main` was green before the final Memory Studio filter/count polish. The final Phase 2 slice must pass GitHub Actions before Phase 2 is marked complete.
 
 ## Next action
 
-Inspect CI for the user-discovery/detail slice first. If green, finish the small Phase 2 inspection experience with summary counts/filter polish and documentation, then decide whether Memory Studio is sufficient to mark Phase 2 complete before starting the n8n community node package.
+Inspect CI for the final Memory Studio filter/count polish. If green, mark Phase 2 complete and start Phase 3 with the minimal n8n community node package scaffold and the Save / Retrieve / Search / Forget operation contract. Do not add a hosted service; keep the integration local-first.
 
 ## Architectural guardrails
 
@@ -41,5 +39,5 @@ Inspect CI for the user-discovery/detail slice first. If green, finish the small
 - Local FastEmbed/ONNX embeddings.
 - LiteLLM for provider-agnostic extraction.
 - LangGraph in-process orchestration.
-- Memory Studio remains local and read-only until the inspection experience is solid.
+- Memory Studio remains local and read-only.
 - No hosted SaaS, Kubernetes, Neo4j, Redis, or Celery in the default profile.

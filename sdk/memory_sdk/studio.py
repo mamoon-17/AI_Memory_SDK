@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+from collections import Counter
 from html import escape
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlencode, urlparse
@@ -10,29 +11,51 @@ from memory_sdk.config import MemoryConfig
 from memory_sdk.models import MemoryFact
 
 
-def _studio_url(path: str, *, user_id: str, query: str = "") -> str:
+def _studio_url(
+    path: str, *, user_id: str, query: str = "", kind: str = ""
+) -> str:
     params = {"user_id": user_id}
     if query:
         params["q"] = query
+    if kind:
+        params["kind"] = kind
     return f"{path}?{urlencode(params)}"
 
 
 def render_memory_table(
-    facts: list[MemoryFact], *, user_id: str, query: str, users: list[str] | None = None
+    facts: list[MemoryFact],
+    *,
+    user_id: str,
+    query: str,
+    users: list[str] | None = None,
+    kind: str = "",
+    all_facts: list[MemoryFact] | None = None,
 ) -> str:
     users = users or ([user_id] if user_id else [])
-    options = "".join(
+    all_facts = all_facts if all_facts is not None else facts
+    kind_counts = Counter(fact.kind for fact in all_facts)
+    kinds = sorted(kind_counts)
+
+    user_options = "".join(
         f'<option value="{escape(candidate)}"'
         f'{" selected" if candidate == user_id else ""}>{escape(candidate)}</option>'
         for candidate in users
     )
-    if not options:
-        options = '<option value="">No users found</option>'
+    if not user_options:
+        user_options = '<option value="">No users found</option>'
+
+    kind_options = ['<option value="">All kinds</option>']
+    kind_options.extend(
+        f'<option value="{escape(candidate)}"'
+        f'{" selected" if candidate == kind else ""}>'
+        f'{escape(candidate)} ({kind_counts[candidate]})</option>'
+        for candidate in kinds
+    )
 
     rows = "".join(
         "<tr>"
         f"<td>{escape(fact.kind)}</td>"
-        f'<td><a href="{escape(_studio_url(f"/memories/{fact.id}", user_id=user_id, query=query))}">'
+        f'<td><a href="{escape(_studio_url(f"/memories/{fact.id}", user_id=user_id, query=query, kind=kind))}">'
         f"{escape(fact.key)}</a></td>"
         f"<td>{escape(fact.value)}</td>"
         f"<td>{fact.importance:.2f}</td>"
@@ -49,6 +72,14 @@ def render_memory_table(
         if user_id
         else "No user scopes exist in this database yet."
     )
+    visible_count = len(facts)
+    total_count = len(all_facts)
+    summary = f"Showing {visible_count} of {total_count} memories"
+    if kind:
+        summary += f" · kind: {escape(kind)}"
+    if query:
+        summary += f" · search: {escape(query)}"
+
     return f"""<!doctype html>
 <html lang="en">
 <head>
@@ -57,24 +88,28 @@ def render_memory_table(
   <title>Memory Studio</title>
   <style>
     body {{ font-family: system-ui, sans-serif; margin: 2rem auto; max-width: 1200px; padding: 0 1rem; }}
-    form {{ display: flex; gap: .75rem; margin: 1rem 0 1.5rem; }}
-    input, select {{ flex: 1; padding: .65rem .8rem; }}
+    form {{ display: grid; grid-template-columns: 1fr 1fr 2fr auto; gap: .75rem; margin: 1rem 0 .75rem; }}
+    input, select {{ min-width: 0; padding: .65rem .8rem; }}
     button {{ padding: .65rem 1rem; cursor: pointer; }}
     table {{ border-collapse: collapse; width: 100%; }}
     th, td {{ border-bottom: 1px solid #ddd; padding: .65rem; text-align: left; vertical-align: top; }}
     th {{ position: sticky; top: 0; background: white; }}
     .meta {{ color: #666; }}
+    .summary {{ margin: 0 0 1rem; font-size: .95rem; }}
     a {{ color: inherit; }}
+    @media (max-width: 760px) {{ form {{ grid-template-columns: 1fr; }} table {{ font-size: .9rem; }} }}
   </style>
 </head>
 <body>
   <h1>Memory Studio</h1>
   <p class="meta">{scope_text}</p>
   <form method="get" action="/">
-    <select name="user_id" aria-label="User scope">{options}</select>
+    <select name="user_id" aria-label="User scope">{user_options}</select>
+    <select name="kind" aria-label="Memory kind">{''.join(kind_options)}</select>
     <input type="search" name="q" value="{escape(query)}" placeholder="Search key or value">
     <button type="submit">Inspect</button>
   </form>
+  <p class="summary">{summary}</p>
   <table>
     <thead><tr><th>Kind</th><th>Key</th><th>Value</th><th>Importance</th><th>Created</th><th>Updated</th></tr></thead>
     <tbody>{rows}</tbody>
@@ -83,8 +118,8 @@ def render_memory_table(
 </html>"""
 
 
-def render_memory_detail(fact: MemoryFact, *, query: str = "") -> str:
-    back_url = _studio_url("/", user_id=fact.user_id, query=query)
+def render_memory_detail(fact: MemoryFact, *, query: str = "", kind: str = "") -> str:
+    back_url = _studio_url("/", user_id=fact.user_id, query=query, kind=kind)
     embedding = "present" if fact.embedding else "not stored"
     return f"""<!doctype html>
 <html lang="en">
@@ -128,15 +163,22 @@ def create_handler(
             requested_user_id = params.get("user_id", [initial_user_id or ""])[0].strip()
             user_id = requested_user_id or (users[0] if users else "")
             query = params.get("q", [""])[0].strip()
+            kind = params.get("kind", [""])[0].strip()
 
             if parsed.path == "/":
-                facts = (
+                all_facts = (
                     memory.retrieve(user_id=user_id, query=query or None, limit=limit)
                     if user_id
                     else []
                 )
+                facts = [fact for fact in all_facts if not kind or fact.kind == kind]
                 body = render_memory_table(
-                    facts, user_id=user_id, query=query, users=users
+                    facts,
+                    user_id=user_id,
+                    query=query,
+                    users=users,
+                    kind=kind,
+                    all_facts=all_facts,
                 ).encode("utf-8")
                 self._send_html(body)
                 return
@@ -147,7 +189,7 @@ def create_handler(
                 if fact is None:
                     self.send_error(404)
                     return
-                self._send_html(render_memory_detail(fact, query=query).encode("utf-8"))
+                self._send_html(render_memory_detail(fact, query=query, kind=kind).encode("utf-8"))
                 return
 
             self.send_error(404)

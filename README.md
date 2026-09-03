@@ -29,7 +29,7 @@ After installing the package, point it at an existing SQLite database:
 memory-studio --db memory.db
 ```
 
-Then open `http://127.0.0.1:8765`. Studio discovers user scopes present in the local database, lets you switch between them, search the selected user's memories, and open a focused detail page for an individual memory. Detail lookup remains user-scoped so a memory ID cannot be inspected through another user's selected scope.
+Then open `http://127.0.0.1:8765`. Studio discovers user scopes present in the local database, lets you switch between them, search the selected user's memories, filter by memory kind, see visible/total counts, and open a focused detail page for an individual memory. Kind options include per-kind counts for the current retrieved scope. Detail navigation preserves the active search and kind filter.
 
 You can still choose the initial scope explicitly when useful:
 
@@ -37,7 +37,7 @@ You can still choose the initial scope explicitly when useful:
 memory-studio --db memory.db --user-id user-123
 ```
 
-The default bind address is loopback-only. Studio remains read-only and shows memory kind, key, value, importance, embedding presence, and created/updated timestamps.
+The default bind address is loopback-only. Studio remains read-only and shows memory kind, key, value, importance, embedding presence, and created/updated timestamps. The `--limit` option controls the maximum number of retrieved memories shown for the selected user.
 
 ## Roadmap
 
