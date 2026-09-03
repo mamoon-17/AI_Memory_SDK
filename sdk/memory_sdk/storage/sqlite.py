@@ -134,6 +134,31 @@ class SQLiteMemoryStore:
 
         return [_fact_from_row(row) for row in rows]
 
+    def list_user_ids(self) -> list[str]:
+        """Return user scopes that currently contain at least one memory."""
+        with self._connect() as connection:
+            rows = connection.execute(
+                """
+                SELECT DISTINCT user_id
+                FROM memory_facts
+                ORDER BY user_id COLLATE NOCASE ASC, user_id ASC
+                """
+            ).fetchall()
+        return [str(row["user_id"]) for row in rows]
+
+    def get_fact(self, *, user_id: str, fact_id: str) -> MemoryFact | None:
+        """Return one fact only when it belongs to the requested user scope."""
+        with self._connect() as connection:
+            row = connection.execute(
+                """
+                SELECT id, user_id, kind, key, value, importance, embedding_json, created_at, updated_at
+                FROM memory_facts
+                WHERE user_id = ? AND id = ?
+                """,
+                (user_id, fact_id),
+            ).fetchone()
+        return _fact_from_row(row) if row is not None else None
+
     def search_by_vector(
         self, *, user_id: str, query_vector: list[float], limit: int
     ) -> list[MemoryFact] | None:
