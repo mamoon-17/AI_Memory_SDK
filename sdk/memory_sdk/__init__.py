@@ -3,6 +3,15 @@
 from .client import Memory
 from .config import MemoryConfig
 from .models import MemoryFact
+from .providers import EmbeddingProvider, ExtractedFact, FactExtractor
 from .storage.sqlite import SQLiteMemoryStore
 
-__all__ = ["Memory", "MemoryConfig", "MemoryFact", "SQLiteMemoryStore"]
+__all__ = [
+    "EmbeddingProvider",
+    "ExtractedFact",
+    "FactExtractor",
+    "Memory",
+    "MemoryConfig",
+    "MemoryFact",
+    "SQLiteMemoryStore",
+]

@@ -4,9 +4,13 @@
 
 - Repository/package foundation.
 - Structured `MemoryFact` model and local SQLite fact store.
-- Public `Memory` client with user-scoped `save()` and `retrieve()` APIs.
-- Deterministic lexical relevance fallback for Phase 0 retrieval.
-- Unit coverage for user isolation, ranking, and invalid limits.
+- Public `Memory` client with user-scoped structured `save()` and `retrieve()` APIs.
+- Provider-neutral extraction and embedding protocols.
+- Lazy LiteLLM fact extraction and local FastEmbed/ONNX embedding adapters.
+- LangGraph in-process Phase 0 save pipeline: classify → extract → exact dedup → embed → store.
+- Embedding persistence in SQLite plus vector similarity retrieval when an embedder is configured.
+- Deterministic lexical retrieval remains as a dependency/provider fallback.
+- Unit coverage for user isolation, ranking, invalid limits, pipeline deduplication, blank input, and vector ranking.
 - GitHub Actions lint/test workflow exists.
 
 ## Current milestone
@@ -15,11 +19,11 @@ Phase 0 — core memory pipeline.
 
 ## Validation status
 
-The repository has CI configured, but no combined status was available for the previous head when this checkpoint was written. The new client slice is covered by pytest tests and should be validated by the next GitHub Actions run before being treated as fully green.
+The provider/pipeline slice has deterministic provider-free tests using fakes. The repository CI is configured to install the package and run Ruff + pytest. CI status should be checked on the new head before this slice is considered fully green.
 
 ## Next action
 
-Add pluggable extraction and embedding interfaces, with LiteLLM and local FastEmbed adapters loaded lazily. Then wire a LangGraph in-process save pipeline around classify → extract → dedup → embed → store while keeping tests provider-free through fakes.
+Finish Phase 0 vector storage by integrating sqlite-vec for database-side nearest-neighbor search, while retaining a safe Python cosine fallback when the extension cannot load. Add migrations/tests for sqlite-vec availability and document the default local installation path. Do not begin Phase 1 conflict resolution until the vector store path is stable.
 
 ## Architectural guardrails
 

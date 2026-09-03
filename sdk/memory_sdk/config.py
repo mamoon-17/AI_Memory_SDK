@@ -10,4 +10,6 @@ class MemoryConfig(BaseModel):
 
     database_path: Path = Field(default=Path("./memory.db"))
     embedding_provider: str = Field(default="local")
+    embedding_model: str | None = Field(default=None)
     llm_provider: str | None = Field(default=None)
+    llm_model: str | None = Field(default=None)

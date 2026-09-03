@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import sqlite3
 from pathlib import Path
 
@@ -7,7 +8,7 @@ from memory_sdk.models import MemoryFact
 
 
 class SQLiteMemoryStore:
-    """Minimal SQLite-backed fact store for the default local profile."""
+    """SQLite-backed fact store for the default local profile."""
 
     def __init__(self, database_path: str | Path) -> None:
         self.database_path = Path(database_path)
@@ -30,11 +31,18 @@ class SQLiteMemoryStore:
                     key TEXT NOT NULL,
                     value TEXT NOT NULL,
                     importance REAL NOT NULL,
+                    embedding_json TEXT,
                     created_at TEXT NOT NULL,
                     updated_at TEXT NOT NULL
                 )
                 """
             )
+            columns = {
+                row["name"]
+                for row in connection.execute("PRAGMA table_info(memory_facts)").fetchall()
+            }
+            if "embedding_json" not in columns:
+                connection.execute("ALTER TABLE memory_facts ADD COLUMN embedding_json TEXT")
             connection.execute(
                 "CREATE INDEX IF NOT EXISTS idx_memory_facts_user_id ON memory_facts(user_id)"
             )
@@ -44,8 +52,8 @@ class SQLiteMemoryStore:
             connection.execute(
                 """
                 INSERT OR REPLACE INTO memory_facts (
-                    id, user_id, kind, key, value, importance, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    id, user_id, kind, key, value, importance, embedding_json, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     fact.id,
@@ -54,6 +62,7 @@ class SQLiteMemoryStore:
                     fact.key,
                     fact.value,
                     fact.importance,
+                    json.dumps(fact.embedding) if fact.embedding is not None else None,
                     fact.created_at.isoformat(),
                     fact.updated_at.isoformat(),
                 ),
@@ -63,7 +72,7 @@ class SQLiteMemoryStore:
         with self._connect() as connection:
             rows = connection.execute(
                 """
-                SELECT id, user_id, kind, key, value, importance, created_at, updated_at
+                SELECT id, user_id, kind, key, value, importance, embedding_json, created_at, updated_at
                 FROM memory_facts
                 WHERE user_id = ?
                 ORDER BY created_at ASC
@@ -71,4 +80,10 @@ class SQLiteMemoryStore:
                 (user_id,),
             ).fetchall()
 
-        return [MemoryFact.model_validate(dict(row)) for row in rows]
+        facts: list[MemoryFact] = []
+        for row in rows:
+            payload = dict(row)
+            embedding_json = payload.pop("embedding_json", None)
+            payload["embedding"] = json.loads(embedding_json) if embedding_json else None
+            facts.append(MemoryFact.model_validate(payload))
+        return facts

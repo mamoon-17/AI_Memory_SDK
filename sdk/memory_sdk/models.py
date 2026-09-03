@@ -12,6 +12,7 @@ class MemoryFact(BaseModel):
     kind: str = "fact"
     key: str
     value: str
-    importance: float = 0.5
+    importance: float = Field(default=0.5, ge=0.0, le=1.0)
+    embedding: list[float] | None = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
