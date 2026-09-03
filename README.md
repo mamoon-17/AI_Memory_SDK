@@ -21,15 +21,23 @@ If the host Python/SQLite build cannot load extensions, facts and embeddings are
 
 ## Memory Studio
 
-Memory Studio is a deliberately small, local-only, read-only inspection UI that reuses the same `Memory` retrieval path as the SDK. It does not introduce a second backend or persistence layer.
+Memory Studio is a deliberately small, local-only, read-only inspection UI that reuses the same `Memory` retrieval path and SQLite store as the SDK. It does not introduce a second backend or persistence layer.
 
-After installing the package, point it at an existing SQLite database and a user scope:
+After installing the package, point it at an existing SQLite database:
+
+```bash
+memory-studio --db memory.db
+```
+
+Then open `http://127.0.0.1:8765`. Studio discovers user scopes present in the local database, lets you switch between them, search the selected user's memories, and open a focused detail page for an individual memory. Detail lookup remains user-scoped so a memory ID cannot be inspected through another user's selected scope.
+
+You can still choose the initial scope explicitly when useful:
 
 ```bash
 memory-studio --db memory.db --user-id user-123
 ```
 
-Then open `http://127.0.0.1:8765`. The first slice supports listing and searching memories and inspecting kind, key, value, importance, and created/updated timestamps. The default bind address is loopback-only.
+The default bind address is loopback-only. Studio remains read-only and shows memory kind, key, value, importance, embedding presence, and created/updated timestamps.
 
 ## Roadmap
 
