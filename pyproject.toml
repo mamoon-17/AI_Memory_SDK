@@ -18,6 +18,9 @@ dependencies = [
   "sqlite-vec>=0.1.9,<0.2",
 ]
 
+[project.scripts]
+memory-studio = "memory_sdk.studio:main"
+
 [project.optional-dependencies]
 dev = [
   "pytest>=8.3,<9",
