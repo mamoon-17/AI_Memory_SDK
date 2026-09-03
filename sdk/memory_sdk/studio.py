@@ -59,7 +59,7 @@ def render_memory_table(facts: list[MemoryFact], *, user_id: str, query: str) ->
 
 def create_handler(memory: Memory, *, user_id: str, limit: int) -> type[BaseHTTPRequestHandler]:
     class MemoryStudioHandler(BaseHTTPRequestHandler):
-        def do_GET(self) -> None:  # noqa: N802
+        def do_GET(self) -> None:
             parsed = urlparse(self.path)
             if parsed.path != "/":
                 self.send_error(404)
