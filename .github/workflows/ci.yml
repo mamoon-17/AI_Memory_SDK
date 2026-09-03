@@ -28,10 +28,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-          cache: npm
-          cache-dependency-path: n8n/package.json
       - name: Install n8n node dependencies
-        run: npm install --prefix n8n
+        run: npm install --prefix n8n --no-audit --no-fund
       - name: Typecheck n8n node
         run: npm run --prefix n8n typecheck
       - name: Build n8n node
@@ -41,7 +39,7 @@ jobs:
 
   n8n-runtime-smoke:
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -55,7 +53,7 @@ jobs:
         run: pip install -e .
       - name: Build and pack community node
         run: |
-          npm install --prefix n8n
+          npm install --prefix n8n --no-audit --no-fund
           npm run --prefix n8n build
           mkdir -p "$RUNNER_TEMP/packages"
           (cd n8n && npm pack --pack-destination "$RUNNER_TEMP/packages")
@@ -64,11 +62,11 @@ jobs:
           mkdir -p "$RUNNER_TEMP/n8n-user/nodes"
           cd "$RUNNER_TEMP/n8n-user/nodes"
           npm init -y
-          npm install "$RUNNER_TEMP"/packages/n8n-nodes-ai-memory-sdk-*.tgz
+          npm install --no-audit --no-fund "$RUNNER_TEMP"/packages/n8n-nodes-ai-memory-sdk-*.tgz
       - name: Install pinned self-hosted n8n runtime
         run: |
           mkdir -p "$RUNNER_TEMP/n8n-runtime"
-          npm install --prefix "$RUNNER_TEMP/n8n-runtime" n8n@2.36.8
+          npm install --no-audit --no-fund --prefix "$RUNNER_TEMP/n8n-runtime" n8n@2.36.8
       - name: Start n8n and verify AI Memory SDK node is registered
         env:
           N8N_USER_FOLDER: ${{ runner.temp }}/n8n-user
