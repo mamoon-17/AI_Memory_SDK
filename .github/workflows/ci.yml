@@ -57,19 +57,22 @@ jobs:
           npm run --prefix n8n build
           mkdir -p "$RUNNER_TEMP/packages"
           (cd n8n && npm pack --pack-destination "$RUNNER_TEMP/packages")
-      - name: Install package into a self-hosted n8n user folder
+      - name: Install packed node artifact
         run: |
           mkdir -p "$RUNNER_TEMP/n8n-user/nodes"
           cd "$RUNNER_TEMP/n8n-user/nodes"
           npm init -y
           npm install --no-audit --no-fund "$RUNNER_TEMP"/packages/n8n-nodes-ai-memory-sdk-*.tgz
+          test -f node_modules/n8n-nodes-ai-memory-sdk/dist/nodes/AiMemory/AiMemory.node.js
+          test -f node_modules/n8n-nodes-ai-memory-sdk/dist/nodes/AiMemory/aiMemory.svg
       - name: Install pinned self-hosted n8n runtime
         run: |
           mkdir -p "$RUNNER_TEMP/n8n-runtime"
           npm install --no-audit --no-fund --prefix "$RUNNER_TEMP/n8n-runtime" n8n@2.36.8
-      - name: Start n8n and verify AI Memory SDK node is registered
+      - name: Start n8n and verify packed AI Memory SDK node is registered
         env:
           N8N_USER_FOLDER: ${{ runner.temp }}/n8n-user
+          N8N_CUSTOM_EXTENSIONS: ${{ runner.temp }}/n8n-user/nodes/node_modules/n8n-nodes-ai-memory-sdk/dist/nodes/AiMemory
           N8N_HOST: 127.0.0.1
           N8N_PORT: '5680'
           N8N_PROTOCOL: http
@@ -86,8 +89,10 @@ jobs:
           N8N_PID=$!
           trap 'kill "$N8N_PID" 2>/dev/null || true; cat "$LOG"' EXIT
 
-          # Wait for n8n to finish first-run migrations and expose the editor before
-          # checking registration. This separates startup readiness from node loading.
+          # A raw npm install under ~/.n8n/nodes is not equivalent to n8n's managed
+          # community-package installation, which is database tracked. For CI we load
+          # the exact packed artifact through n8n's supported custom-extension path
+          # instead of fabricating package database rows.
           for attempt in $(seq 1 420); do
             if ! kill -0 "$N8N_PID" 2>/dev/null; then
               echo "n8n exited before the editor became ready"
@@ -103,8 +108,8 @@ jobs:
             sleep 1
           done
 
-          # Once the editor is ready, require the published node catalog to contain
-          # the exact community node identifiers. Do not accept health-only success.
+          # Once the editor is ready, require the public node catalog to contain the
+          # exact identifiers from the packed artifact. Health-only success is not enough.
           for attempt in $(seq 1 60); do
             if ! kill -0 "$N8N_PID" 2>/dev/null; then
               echo "n8n exited before the node catalog registered AI Memory SDK"
@@ -127,7 +132,7 @@ jobs:
           raise SystemExit(0 if 'aiMemory' in serialized and 'AI Memory SDK' in serialized else 1)
           PY
               then
-                echo "AI Memory SDK community node registered successfully"
+                echo "AI Memory SDK packed node registered successfully"
                 exit 0
               fi
             fi
@@ -135,7 +140,7 @@ jobs:
             sleep 1
           done
 
-          echo "AI Memory SDK community node was not registered after n8n became ready"
+          echo "AI Memory SDK packed node was not registered after n8n became ready"
           echo "Last catalog response:"
           head -c 1000 "$CATALOG" || true
           echo
