@@ -110,7 +110,11 @@ jobs:
       - name: Install pinned self-hosted n8n runtime
         run: |
           mkdir -p "$RUNNER_TEMP/n8n-runtime"
-          npm install --no-audit --no-fund --prefix "$RUNNER_TEMP/n8n-runtime" n8n@2.36.8
+          # n8n 2.36.8 currently has optional peer ranges that npm 11 can try to
+          # resolve to unpublished package versions (for example @tiptap/extensions
+          # 3.31.3). Legacy peer resolution keeps this smoke pinned to n8n 2.36.8
+          # while avoiding unrelated optional-peer registry churn.
+          npm install --legacy-peer-deps --no-audit --no-fund --prefix "$RUNNER_TEMP/n8n-runtime" n8n@2.36.8
       - name: Start n8n and verify packed AI Memory SDK node is registered
         env:
           N8N_USER_FOLDER: ${{ runner.temp }}/n8n-user
