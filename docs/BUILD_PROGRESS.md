@@ -29,11 +29,11 @@ Phase 3 — n8n community node package.
 
 ## Validation status
 
-Python tests and the regular n8n typecheck/build/package jobs are green. The Node 24 runtime fix succeeded: self-hosted n8n 2.36.8 now installs and starts successfully. CI run 26 still failed only in the registration assertion because the smoke test queried `/rest/node-types`, whose first-run response was not JSON and caused `JSONDecodeError`. The assertion was corrected in `1e762efd294aba13452aa575489c086a52b0abb8` to query n8n's public `/types/nodes.json` catalog instead, which is the endpoint used to expose the node catalog without requiring editor-session setup.
+Python tests and the regular n8n typecheck/build/package jobs remain green. Self-hosted n8n 2.36.8 installs and starts on Node 24. CI run 28 showed that `/healthz` becomes available while first-run database migrations are still running, so `/types/nodes.json` was queried too early and returned non-JSON. Commit `0e7a8f9fd5c82b81957bc26beff97a59015dcd4a` changes the runtime smoke to poll the public node catalog until it is valid JSON and contains both `aiMemory` and `AI Memory SDK`, while still failing if n8n exits or the registration never appears.
 
 ## Next action
 
-Inspect CI for `1e762efd294aba13452aa575489c086a52b0abb8`. If the self-hosted runtime smoke is green and `/types/nodes.json` contains `aiMemory` / `AI Memory SDK`, mark Phase 3 complete and then begin Phase 4 only as optional stretch work. If it fails, inspect the runtime log and continue fixing package loading/registration before any Phase 4 work. Do not weaken the registration assertion, add a hosted service, or duplicate SDK storage logic in TypeScript.
+Inspect CI for `0e7a8f9fd5c82b81957bc26beff97a59015dcd4a`. If the self-hosted runtime smoke is green, mark Phase 3 complete and then begin Phase 4 only as optional stretch work. If it fails, inspect the runtime log and continue fixing actual package loading/registration before any Phase 4 work. Do not weaken the registration assertion, add a hosted service, or duplicate SDK storage logic in TypeScript.
 
 ## Architectural guardrails
 
