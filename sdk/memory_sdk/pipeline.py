@@ -7,7 +7,7 @@ from langgraph.graph import END, START, StateGraph
 from memory_sdk.models import MemoryFact
 from memory_sdk.providers import EmbeddingProvider, ExtractedFact, FactExtractor
 from memory_sdk.quality import score_importance
-from memory_sdk.storage.sqlite import SQLiteMemoryStore
+from memory_sdk.storage.base import MemoryStore
 
 
 class PipelineState(TypedDict, total=False):
@@ -29,7 +29,7 @@ class MemorySavePipeline:
     def __init__(
         self,
         *,
-        store: SQLiteMemoryStore,
+        store: MemoryStore,
         extractor: FactExtractor,
         embedder: EmbeddingProvider,
     ) -> None:

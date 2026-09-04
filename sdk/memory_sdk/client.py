@@ -9,6 +9,7 @@ from memory_sdk.models import MemoryFact
 from memory_sdk.pipeline import MemorySavePipeline
 from memory_sdk.providers import EmbeddingProvider, FactExtractor
 from memory_sdk.quality import recency_score
+from memory_sdk.storage.base import MemoryStore
 from memory_sdk.storage.sqlite import SQLiteMemoryStore
 
 
@@ -21,9 +22,10 @@ class Memory:
         *,
         extractor: FactExtractor | None = None,
         embedder: EmbeddingProvider | None = None,
+        store: MemoryStore | None = None,
     ) -> None:
         self.config = config or MemoryConfig()
-        self.store = SQLiteMemoryStore(self.config.database_path)
+        self.store: MemoryStore = store or SQLiteMemoryStore(self.config.database_path)
         self.extractor = extractor
         self.embedder = embedder
         self._pipeline: MemorySavePipeline | None = None

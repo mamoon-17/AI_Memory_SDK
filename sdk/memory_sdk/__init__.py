@@ -4,7 +4,7 @@ from .client import Memory
 from .config import MemoryConfig
 from .models import MemoryFact
 from .providers import EmbeddingProvider, ExtractedFact, FactExtractor
-from .storage.sqlite import SQLiteMemoryStore
+from .storage import MemoryStore, PostgresMemoryStore, SQLiteMemoryStore
 
 __all__ = [
     "EmbeddingProvider",
@@ -13,5 +13,7 @@ __all__ = [
     "Memory",
     "MemoryConfig",
     "MemoryFact",
+    "MemoryStore",
+    "PostgresMemoryStore",
     "SQLiteMemoryStore",
 ]

@@ -19,26 +19,29 @@
 - Phase 2 Memory Studio: local read-only UI with user discovery/switching, search, memory-kind filtering with counts, visible/total summary counts, user-scoped memory detail pages, preserved filter navigation, HTML escaping, loopback-only default binding, CLI entry point, tests, and README usage docs.
 - Final Memory Studio inspection polish in `bae7e1d20ebb977d962a8dc143d737bd40e47630` validated green in GitHub Actions.
 - Phase 2 complete.
-- Phase 3 first slice: user-scoped `Memory.forget()`, local stdin/stdout `memory-sdk-bridge`, and n8n community node package exposing Save / Retrieve / Search / Forget.
+- Phase 3: user-scoped `Memory.forget()`, local stdin/stdout `memory-sdk-bridge`, and n8n community node package exposing Save / Retrieve / Search / Forget.
 - Phase 3 scaffold fixed for installed n8n-workflow connection typing and validated green in Python and n8n CI on `82b8a61e82720e6a9c8151c829caf075a8de78f1`.
 - Phase 3 process-level bridge tests and npm package validation in `6048d91a884852e5cbcc600878be3ef638143778` validated green in GitHub Actions.
+- Phase 3 self-hosted runtime validation completed on CI run 41 for `96190312ee29cd266565eee6372c1be41fc7a02a`: the exact packed `.tgz` loaded in n8n 2.36.8 on Node 24 and n8n's generated node catalog contained both `aiMemory` and `AI Memory SDK`.
+- Phase 3 complete.
 
 ## Current milestone
 
-Phase 3 — n8n community node package.
+Phase 4 — optional Standard-tier Postgres + pgvector storage. TypeScript SDK remains a later Phase 4 stretch slice and must not duplicate Python memory semantics.
 
 ## Validation status
 
-Python tests and the regular n8n typecheck/build/package jobs remain green. CI run 40 on `944c9b7aebba06207630bd7083cd0f9b12bee094` confirmed the exact packed `.tgz` installs with its compiled node JS/SVG present and n8n 2.36.8 reaches a healthy editor on Node 24, but the runtime smoke still failed its catalog assertion. Inspection of the pinned n8n 2.36.8 source showed the smoke's oracle was wrong: `/types/nodes.json` is protected by editor authentication and is served from n8n's generated static cache, so unauthenticated `curl --fail` cannot prove whether the custom node registered. The current CI fix keeps the packed-artifact install and `N8N_CUSTOM_EXTENSIONS` loader path unchanged, but validates the generated `$N8N_USER_FOLDER/.cache/n8n/public/types/nodes.json` file directly and still requires both `aiMemory` and `AI Memory SDK`.
+Phase 3 is green. The current Phase 4 change set introduces a backend-neutral `MemoryStore` protocol, optional store injection into `Memory`, and `PostgresMemoryStore` while preserving SQLite + sqlite-vec as the default. The Postgres adapter keeps embeddings in the fact row for fallback ranking and maintains a dimension-locked pgvector table for user-scoped cosine KNN. PostgreSQL client support is opt-in through the `postgres` package extra. CI now provisions a `pgvector/pgvector:pg16` service and runs real CRUD, user-isolation, vector-search, dimension-mismatch, and `Memory` injection/forget integration coverage. This Phase 4 slice is pending CI validation and must not be treated as complete until that run is green.
 
 ## Next action
 
-Inspect CI for the generated-catalog smoke fix. If the self-hosted runtime smoke is green and the generated node catalog contains both `aiMemory` and `AI Memory SDK`, record Phase 3 runtime compatibility as validated and assess Phase 3 complete before starting optional Phase 4. If registration still fails, use the added static-cache listing and loader-related runtime log diagnostics to identify an actual module/discovery error before changing package metadata or loader paths. Do not weaken the exact node-catalog assertion, fake `installed_packages` database state, add a hosted service, or duplicate SDK storage logic in TypeScript.
+Inspect CI for the Postgres + pgvector Standard-tier slice. If any Python/Postgres, lint, n8n, or runtime-smoke job is red, fix it before further roadmap work. Once green, document Postgres usage and assess whether the Postgres slice is complete; only then consider the TypeScript SDK stretch slice. Keep TypeScript thin or protocol-facing rather than reimplementing the Python pipeline/storage semantics.
 
 ## Architectural guardrails
 
 - Python SDK first.
-- SQLite + sqlite-vec default local storage.
+- SQLite + sqlite-vec remains the default local storage profile.
+- Postgres + pgvector is optional Standard-tier infrastructure only.
 - Local FastEmbed/ONNX embeddings.
 - LiteLLM for provider-agnostic extraction.
 - LangGraph in-process orchestration.
