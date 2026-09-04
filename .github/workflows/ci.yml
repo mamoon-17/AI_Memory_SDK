@@ -80,31 +80,43 @@ jobs:
         run: |
           set -euo pipefail
           LOG="$RUNNER_TEMP/n8n-runtime.log"
+          CATALOG="$RUNNER_TEMP/node-types.json"
           "$RUNNER_TEMP/n8n-runtime/node_modules/.bin/n8n" start >"$LOG" 2>&1 &
           N8N_PID=$!
           trap 'kill "$N8N_PID" 2>/dev/null || true; cat "$LOG"' EXIT
 
-          for attempt in $(seq 1 60); do
+          for attempt in $(seq 1 120); do
             if ! kill -0 "$N8N_PID" 2>/dev/null; then
-              echo "n8n exited before becoming healthy"
+              echo "n8n exited before the node catalog became ready"
               exit 1
             fi
-            if curl --fail --silent http://127.0.0.1:5679/healthz >/dev/null; then
-              break
-            fi
-            sleep 1
-          done
 
-          curl --fail --silent http://127.0.0.1:5679/healthz >/dev/null
-          curl --fail --silent http://127.0.0.1:5679/types/nodes.json >"$RUNNER_TEMP/node-types.json"
-          python - <<'PY'
+            if curl --fail --silent http://127.0.0.1:5679/types/nodes.json >"$CATALOG" 2>/dev/null; then
+              if python - <<'PY'
           import json
           import os
           from pathlib import Path
 
-          node_types = json.loads(Path(os.environ['RUNNER_TEMP']).joinpath('node-types.json').read_text())
+          catalog = Path(os.environ['RUNNER_TEMP']).joinpath('node-types.json')
+          try:
+              node_types = json.loads(catalog.read_text())
+          except (json.JSONDecodeError, OSError):
+              raise SystemExit(1)
+
           serialized = json.dumps(node_types)
-          if 'aiMemory' not in serialized or 'AI Memory SDK' not in serialized:
-              raise SystemExit('AI Memory SDK community node was not registered by self-hosted n8n')
-          print('AI Memory SDK community node registered successfully')
+          raise SystemExit(0 if 'aiMemory' in serialized and 'AI Memory SDK' in serialized else 1)
           PY
+              then
+                echo "AI Memory SDK community node registered successfully"
+                exit 0
+              fi
+            fi
+
+            sleep 1
+          done
+
+          echo "AI Memory SDK community node was not registered by self-hosted n8n before timeout"
+          echo "Last catalog response:"
+          head -c 1000 "$CATALOG" || true
+          echo
+          exit 1
