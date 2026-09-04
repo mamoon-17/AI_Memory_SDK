@@ -24,18 +24,21 @@
 - Phase 3 process-level bridge tests and npm package validation in `6048d91a884852e5cbcc600878be3ef638143778` validated green in GitHub Actions.
 - Phase 3 self-hosted runtime validation completed on CI run 41 for `96190312ee29cd266565eee6372c1be41fc7a02a`: the exact packed `.tgz` loaded in n8n 2.36.8 on Node 24 and n8n's generated node catalog contained both `aiMemory` and `AI Memory SDK`.
 - Phase 3 complete.
+- Phase 4 Postgres + pgvector Standard-tier slice: backend-neutral `MemoryStore` protocol, optional store injection into `Memory`, `PostgresMemoryStore`, opt-in `postgres` dependency extra, dimension-locked pgvector KNN, and fallback-compatible embedding persistence.
+- Phase 4 Postgres integration validated green on CI run 44 for `943f0aa9a3d6cdd830440f197d384c6f4da4df6e`, including Ruff, Python tests against a real `pgvector/pgvector:pg16` service, n8n build/package validation, and self-hosted n8n runtime smoke.
+- Postgres setup and `Memory(store=...)` usage documented in `README.md`.
 
 ## Current milestone
 
-Phase 4 — optional Standard-tier Postgres + pgvector storage. TypeScript SDK remains a later Phase 4 stretch slice and must not duplicate Python memory semantics.
+Phase 4 — TypeScript SDK stretch slice. This must remain thin and protocol-facing; Python remains the source of truth for extraction, conflict resolution, scoring, ranking, and storage semantics.
 
 ## Validation status
 
-Phase 3 is green. The current Phase 4 change set introduces a backend-neutral `MemoryStore` protocol, optional store injection into `Memory`, and `PostgresMemoryStore` while preserving SQLite + sqlite-vec as the default. The Postgres adapter keeps embeddings in the fact row for fallback ranking and maintains a dimension-locked pgvector table for user-scoped cosine KNN. PostgreSQL client support is opt-in through the `postgres` package extra. CI now provisions a `pgvector/pgvector:pg16` service and runs real CRUD, user-isolation, vector-search, dimension-mismatch, and `Memory` injection/forget integration coverage. This Phase 4 slice is pending CI validation and must not be treated as complete until that run is green.
+The Postgres + pgvector Standard-tier slice is complete and green. SQLite + sqlite-vec remains the default local storage profile. The README documentation commit follows the already-green implementation and should still be allowed to pass normal CI before any TypeScript work is committed.
 
 ## Next action
 
-Inspect CI for the Postgres + pgvector Standard-tier slice. If any Python/Postgres, lint, n8n, or runtime-smoke job is red, fix it before further roadmap work. Once green, document Postgres usage and assess whether the Postgres slice is complete; only then consider the TypeScript SDK stretch slice. Keep TypeScript thin or protocol-facing rather than reimplementing the Python pipeline/storage semantics.
+Inspect CI for the Postgres documentation/checkpoint commits. If red, fix CI before doing anything else. If green, inspect the existing n8n bridge/package and design the smallest useful TypeScript SDK surface that delegates to the Python bridge rather than duplicating the Python pipeline. Favor a typed client exposing Save / Retrieve / Search / Forget semantics with process/transport abstraction and tests. Do not introduce a TypeScript storage engine, extraction pipeline, hosted service, or second source of memory-ranking logic.
 
 ## Architectural guardrails
 
@@ -47,4 +50,5 @@ Inspect CI for the Postgres + pgvector Standard-tier slice. If any Python/Postgr
 - LangGraph in-process orchestration.
 - Memory Studio remains local and read-only.
 - n8n integration calls the local Python SDK through a narrow bridge rather than reimplementing memory semantics.
+- TypeScript SDK must remain thin and delegate to Python rather than duplicate memory semantics.
 - No hosted SaaS, Kubernetes, Neo4j, Redis, or Celery in the default profile.
