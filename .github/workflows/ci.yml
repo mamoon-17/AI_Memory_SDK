@@ -84,7 +84,7 @@ jobs:
         run: |
           set -euo pipefail
           LOG="$RUNNER_TEMP/n8n-runtime.log"
-          CATALOG="$RUNNER_TEMP/node-types.json"
+          CATALOG="$RUNNER_TEMP/n8n-user/.cache/n8n/public/types/nodes.json"
           "$RUNNER_TEMP/n8n-runtime/node_modules/.bin/n8n" start >"$LOG" 2>&1 &
           N8N_PID=$!
           trap 'kill "$N8N_PID" 2>/dev/null || true; cat "$LOG"' EXIT
@@ -108,21 +108,23 @@ jobs:
             sleep 1
           done
 
-          # Once the editor is ready, require the public node catalog to contain the
-          # exact identifiers from the packed artifact. Health-only success is not enough.
+          # n8n 2.36 protects /types/nodes.json with editor authentication. The server
+          # serves that route from this generated static-cache file, so inspect the same
+          # runtime-generated catalog directly instead of treating an unauthenticated HTTP
+          # response as a registration oracle.
           for attempt in $(seq 1 60); do
             if ! kill -0 "$N8N_PID" 2>/dev/null; then
               echo "n8n exited before the node catalog registered AI Memory SDK"
               exit 1
             fi
 
-            if curl --fail --silent http://127.0.0.1:5680/types/nodes.json >"$CATALOG" 2>/dev/null; then
+            if [ -s "$CATALOG" ]; then
               if python - <<'PY'
           import json
           import os
           from pathlib import Path
 
-          catalog = Path(os.environ['RUNNER_TEMP']).joinpath('node-types.json')
+          catalog = Path(os.environ['RUNNER_TEMP']).joinpath('n8n-user/.cache/n8n/public/types/nodes.json')
           try:
               node_types = json.loads(catalog.read_text())
           except (json.JSONDecodeError, OSError):
@@ -140,8 +142,11 @@ jobs:
             sleep 1
           done
 
-          echo "AI Memory SDK packed node was not registered after n8n became ready"
-          echo "Last catalog response:"
-          head -c 1000 "$CATALOG" || true
-          echo
+          echo "AI Memory SDK packed node was not present in n8n's generated node catalog"
+          echo "Static cache contents:"
+          find "$RUNNER_TEMP/n8n-user/.cache/n8n/public" -maxdepth 3 -type f -print 2>/dev/null || true
+          echo "Catalog matches for AI Memory identifiers:"
+          grep -o -E '.{0,80}(aiMemory|AI Memory SDK).{0,80}' "$CATALOG" 2>/dev/null | head -20 || true
+          echo "Loader-related log lines:"
+          grep -i -E 'custom|node|load|error|warn' "$LOG" | tail -120 || true
           exit 1
