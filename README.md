@@ -19,6 +19,37 @@ The default Python install includes `sqlite-vec`. The SDK loads the extension on
 
 If the host Python/SQLite build cannot load extensions, facts and embeddings are still persisted normally. Retrieval safely falls back to in-process cosine ranking and then lexical ranking instead of making the local SDK unusable. Python builds with loadable SQLite extensions are therefore recommended for the default accelerated path.
 
+## Optional Postgres + pgvector storage
+
+SQLite + sqlite-vec remains the default local-first storage profile. For a shared Standard-tier deployment, install the optional PostgreSQL dependency and point the SDK at a PostgreSQL database with the `vector` extension available:
+
+```bash
+pip install 'ai-memory-sdk[postgres]'
+```
+
+Create a `PostgresMemoryStore` with a normal psycopg connection string and inject it into `Memory`:
+
+```python
+from memory_sdk import Memory, PostgresMemoryStore
+
+store = PostgresMemoryStore(
+    "postgresql://memory:memory@localhost:5432/memory"
+)
+memory = Memory(store=store)
+
+memory.save(
+    user_id="user-123",
+    key="favorite_language",
+    value="Python",
+)
+
+facts = memory.retrieve(user_id="user-123")
+```
+
+The adapter initializes its tables and enables the `vector` extension when the database role has permission to do so. Embeddings are retained on the fact row for fallback ranking, while pgvector-backed user-scoped cosine KNN is used when embeddings are present. The vector index/table is dimension-locked; mixing incompatible embedding dimensions in one store is rejected rather than silently corrupting retrieval behavior.
+
+Postgres is optional infrastructure only. The extraction, conflict-resolution, importance, time-decay, ranking, and public `Memory` semantics remain in the Python SDK instead of being reimplemented in the storage backend.
+
 ## Memory Studio
 
 Memory Studio is a deliberately small, local-only, read-only inspection UI that reuses the same `Memory` retrieval path and SQLite store as the SDK. It does not introduce a second backend or persistence layer.
