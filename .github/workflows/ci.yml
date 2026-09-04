@@ -86,11 +86,28 @@ jobs:
           N8N_PID=$!
           trap 'kill "$N8N_PID" 2>/dev/null || true; cat "$LOG"' EXIT
 
-          # A fresh n8n profile can spend more than two minutes running first-use
-          # migrations before the editor routes (including the node catalog) are ready.
-          for attempt in $(seq 1 300); do
+          # Wait for n8n to finish first-run migrations and expose the editor before
+          # checking registration. This separates startup readiness from node loading.
+          for attempt in $(seq 1 420); do
             if ! kill -0 "$N8N_PID" 2>/dev/null; then
-              echo "n8n exited before the node catalog became ready"
+              echo "n8n exited before the editor became ready"
+              exit 1
+            fi
+            if grep -q "Editor is now accessible via:" "$LOG"; then
+              break
+            fi
+            if [ "$attempt" -eq 420 ]; then
+              echo "n8n editor did not become ready before timeout"
+              exit 1
+            fi
+            sleep 1
+          done
+
+          # Once the editor is ready, require the published node catalog to contain
+          # the exact community node identifiers. Do not accept health-only success.
+          for attempt in $(seq 1 60); do
+            if ! kill -0 "$N8N_PID" 2>/dev/null; then
+              echo "n8n exited before the node catalog registered AI Memory SDK"
               exit 1
             fi
 
@@ -118,7 +135,7 @@ jobs:
             sleep 1
           done
 
-          echo "AI Memory SDK community node was not registered by self-hosted n8n before timeout"
+          echo "AI Memory SDK community node was not registered after n8n became ready"
           echo "Last catalog response:"
           head -c 1000 "$CATALOG" || true
           echo
