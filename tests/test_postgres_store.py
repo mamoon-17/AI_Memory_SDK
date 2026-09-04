@@ -7,7 +7,6 @@ import pytest
 from memory_sdk import Memory, MemoryFact
 from memory_sdk.storage.postgres import PostgresMemoryStore
 
-
 DSN = os.environ.get("MEMORY_SDK_TEST_POSTGRES_DSN")
 pytestmark = pytest.mark.skipif(not DSN, reason="Postgres integration DSN is not configured")
 
