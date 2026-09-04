@@ -4,7 +4,6 @@ import os
 from uuid import uuid4
 
 import pytest
-
 from memory_sdk import Memory, MemoryFact
 from memory_sdk.storage.postgres import PostgresMemoryStore
 
