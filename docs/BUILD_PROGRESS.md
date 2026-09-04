@@ -29,11 +29,11 @@ Phase 3 — n8n community node package.
 
 ## Validation status
 
-The package compiles, packs, and its Python bridge passes process-level tests. The self-hosted n8n 2.36.8 runtime smoke check reached actual runtime startup, but CI run 24 failed because the workflow pinned Node 22 while n8n 2.36.8 now requires Node >=24. The workflow was corrected in `5cb30e485b8e0806e2d92d07e4c7bfc551d8a689` so both n8n jobs run on Node 24. Replacement CI run 25 is pending validation.
+Python tests and the regular n8n typecheck/build/package jobs are green. The Node 24 runtime fix succeeded: self-hosted n8n 2.36.8 now installs and starts successfully. CI run 26 still failed only in the registration assertion because the smoke test queried `/rest/node-types`, whose first-run response was not JSON and caused `JSONDecodeError`. The assertion was corrected in `1e762efd294aba13452aa575489c086a52b0abb8` to query n8n's public `/types/nodes.json` catalog instead, which is the endpoint used to expose the node catalog without requiring editor-session setup.
 
 ## Next action
 
-Inspect CI for `5cb30e485b8e0806e2d92d07e4c7bfc551d8a689`. If the self-hosted runtime smoke is green and `/rest/node-types` exposes `aiMemory` / `AI Memory SDK`, mark Phase 3 complete and move to Phase 4 only as optional stretch work. If it fails, inspect the runtime log and continue fixing package loading/registration before any Phase 4 work. Do not add a hosted service or duplicate SDK storage logic in TypeScript.
+Inspect CI for `1e762efd294aba13452aa575489c086a52b0abb8`. If the self-hosted runtime smoke is green and `/types/nodes.json` contains `aiMemory` / `AI Memory SDK`, mark Phase 3 complete and then begin Phase 4 only as optional stretch work. If it fails, inspect the runtime log and continue fixing package loading/registration before any Phase 4 work. Do not weaken the registration assertion, add a hosted service, or duplicate SDK storage logic in TypeScript.
 
 ## Architectural guardrails
 
