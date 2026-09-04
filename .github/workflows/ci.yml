@@ -72,7 +72,7 @@ jobs:
       - name: Start n8n and verify packed AI Memory SDK node is registered
         env:
           N8N_USER_FOLDER: ${{ runner.temp }}/n8n-user
-          N8N_CUSTOM_EXTENSIONS: ${{ runner.temp }}/n8n-user/nodes/node_modules/n8n-nodes-ai-memory-sdk/dist/nodes/AiMemory
+          N8N_CUSTOM_EXTENSIONS: ${{ runner.temp }}/n8n-user/nodes
           N8N_HOST: 127.0.0.1
           N8N_PORT: '5680'
           N8N_PROTOCOL: http
@@ -91,7 +91,7 @@ jobs:
 
           # A raw npm install under ~/.n8n/nodes is not equivalent to n8n's managed
           # community-package installation, which is database tracked. For CI we load
-          # the exact packed artifact through n8n's supported custom-extension path
+          # the exact packed artifact through n8n's supported custom-extension root
           # instead of fabricating package database rows.
           for attempt in $(seq 1 420); do
             if ! kill -0 "$N8N_PID" 2>/dev/null; then
