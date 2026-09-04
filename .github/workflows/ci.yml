@@ -96,7 +96,7 @@ jobs:
           done
 
           curl --fail --silent http://127.0.0.1:5679/healthz >/dev/null
-          curl --fail --silent http://127.0.0.1:5679/rest/node-types >"$RUNNER_TEMP/node-types.json"
+          curl --fail --silent http://127.0.0.1:5679/types/nodes.json >"$RUNNER_TEMP/node-types.json"
           python - <<'PY'
           import json
           import os
