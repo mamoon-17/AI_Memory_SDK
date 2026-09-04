@@ -37,6 +37,32 @@ jobs:
       - name: Test
         run: pytest -q
 
+  typescript:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: typescript/package-lock.json
+      - name: Install local Python SDK and bridge
+        run: pip install -e .
+      - name: Install TypeScript client dependencies
+        run: npm install --prefix typescript --no-audit --no-fund
+      - name: Typecheck TypeScript client
+        run: npm run --prefix typescript typecheck
+      - name: Test TypeScript client and Python bridge integration
+        env:
+          MEMORY_SDK_BRIDGE_INTEGRATION: '1'
+        run: npm test --prefix typescript
+      - name: Validate TypeScript package contents
+        run: cd typescript && npm pack --dry-run
+
   n8n:
     runs-on: ubuntu-latest
     steps:

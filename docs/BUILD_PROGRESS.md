@@ -30,15 +30,15 @@
 
 ## Current milestone
 
-Phase 4 — TypeScript SDK stretch slice. This must remain thin and protocol-facing; Python remains the source of truth for extraction, conflict resolution, scoring, ranking, and storage semantics.
+Phase 4 — thin TypeScript SDK client. Implementation is present and pending CI validation; Python remains the source of truth for extraction, conflict resolution, scoring, ranking, and storage semantics.
 
 ## Validation status
 
-The Postgres + pgvector Standard-tier slice is complete and green. SQLite + sqlite-vec remains the default local storage profile. The README documentation commit follows the already-green implementation and should still be allowed to pass normal CI before any TypeScript work is committed.
+The prior Postgres documentation/checkpoint runs 45 and 46 are green. The TypeScript slice adds a typed `MemoryClient`, a transport abstraction, a local `ProcessBridgeTransport`, unit tests for protocol delegation, an opt-in process integration test against the installed Python bridge, npm package validation, and a dedicated CI job. No TypeScript storage engine, extraction pipeline, embedding implementation, or ranking logic was introduced. This slice must not be marked complete until the new CI run is green.
 
 ## Next action
 
-Inspect CI for the Postgres documentation/checkpoint commits. If red, fix CI before doing anything else. If green, inspect the existing n8n bridge/package and design the smallest useful TypeScript SDK surface that delegates to the Python bridge rather than duplicating the Python pipeline. Favor a typed client exposing Save / Retrieve / Search / Forget semantics with process/transport abstraction and tests. Do not introduce a TypeScript storage engine, extraction pipeline, hosted service, or second source of memory-ranking logic.
+Inspect CI for the TypeScript client implementation. If any job is red, diagnose and fix it before further roadmap work. If all jobs are green, document the TypeScript client in the root README, mark the Phase 4 TypeScript stretch slice complete, and assess whether the defined roadmap is complete rather than broadening scope.
 
 ## Architectural guardrails
 
