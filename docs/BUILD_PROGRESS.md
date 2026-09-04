@@ -32,20 +32,22 @@
 - TypeScript usage documented in the root `README.md` in `e184e7be6db701879cea000a0fd4fc0c06ac415a`.
 - Phase 4 complete.
 - Defined Phase 0–4 roadmap complete.
+- n8n runtime-install stabilization commit `cbfe37897ae7bea01814b5c8b95acdd5f4c1e756` validated green on CI run 51.
+- Final checkpoint commit `67888f2c527a6bab11e36276f9c386e815f56aef` validated green on CI run 52 across the full workflow.
 
 ## Current milestone
 
-No active roadmap milestone. The defined Phase 0–4 scope is complete. Do not broaden scope without a new explicit product decision or roadmap item.
+No active roadmap milestone. The defined Phase 0–4 scope is complete and the repository is healthy. Do not broaden scope without a new explicit product decision or roadmap item.
 
 ## Validation status
 
-CI runs 49 and 50 for the documentation-only closure commits failed only in `n8n-runtime-smoke` while installing the pinned `n8n@2.36.8` runtime. Python tests/lint, n8n typecheck/build/package validation, and TypeScript typecheck/tests/bridge integration/package validation all remained green. The runtime install failed before n8n started because npm 11 attempted to resolve optional peer dependencies to an unpublished `@tiptap/extensions@3.31.3` version. This is dependency-resolution churn inside the pinned n8n dependency graph, not a product-code regression.
+CI runs 51 and 52 completed successfully. The prior npm 11 optional-peer resolution failure during the pinned `n8n@2.36.8` runtime install was resolved by using `npm install --legacy-peer-deps` for that isolated runtime-smoke installation only. The final CI run is green across Python lint/tests with real Postgres + pgvector, n8n typecheck/build/package validation, TypeScript typecheck/tests/real Python bridge integration/npm package validation, and the self-hosted n8n 2.36.8 runtime registration smoke.
 
-Commit `cbfe37897ae7bea01814b5c8b95acdd5f4c1e756` updates only the pinned n8n runtime install to use `npm install --legacy-peer-deps`, preserving n8n 2.36.8 and the same runtime registration acceptance check while avoiding unrelated optional-peer resolution. Replacement CI must be green before the repository is declared fully healthy.
+There are no open GitHub issues at this checkpoint.
 
 ## Next action
 
-Inspect CI for `cbfe37897ae7bea01814b5c8b95acdd5f4c1e756` first. If all four jobs pass, the defined Phase 0–4 roadmap is complete and no further implementation is required. Stop rather than inventing Phase 5 work. If `n8n-runtime-smoke` is still red, inspect the install/runtime logs and fix the reproducible blocker before doing anything else.
+No implementation action is required under the current Phase 0–4 roadmap. Stop the autonomous build loop. Resume only after a new explicit product decision or roadmap item is provided.
 
 ## Architectural guardrails
 
