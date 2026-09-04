@@ -39,11 +39,13 @@ No active roadmap milestone. The defined Phase 0–4 scope is complete. Do not b
 
 ## Validation status
 
-CI run 48 for `5afb458c36a2a43ba592e43a431f0310925edb96` completed successfully across all four jobs: Python test/lint with real Postgres + pgvector service, n8n typecheck/build/package validation, TypeScript typecheck/unit tests/real Python bridge integration/npm package validation, and the self-hosted n8n 2.36.8 runtime registration smoke. The final documentation-only closure commits should be checked for CI status, but they do not alter runtime behavior.
+CI runs 49 and 50 for the documentation-only closure commits failed only in `n8n-runtime-smoke` while installing the pinned `n8n@2.36.8` runtime. Python tests/lint, n8n typecheck/build/package validation, and TypeScript typecheck/tests/bridge integration/package validation all remained green. The runtime install failed before n8n started because npm 11 attempted to resolve optional peer dependencies to an unpublished `@tiptap/extensions@3.31.3` version. This is dependency-resolution churn inside the pinned n8n dependency graph, not a product-code regression.
+
+Commit `cbfe37897ae7bea01814b5c8b95acdd5f4c1e756` updates only the pinned n8n runtime install to use `npm install --legacy-peer-deps`, preserving n8n 2.36.8 and the same runtime registration acceptance check while avoiding unrelated optional-peer resolution. Replacement CI must be green before the repository is declared fully healthy.
 
 ## Next action
 
-On the next run, inspect CI for the documentation closure commits first. If green, no further implementation is required under the current roadmap. Stop rather than inventing Phase 5 work. If a documentation-only CI run is red, diagnose and fix it before declaring the repository fully healthy.
+Inspect CI for `cbfe37897ae7bea01814b5c8b95acdd5f4c1e756` first. If all four jobs pass, the defined Phase 0–4 roadmap is complete and no further implementation is required. Stop rather than inventing Phase 5 work. If `n8n-runtime-smoke` is still red, inspect the install/runtime logs and fix the reproducible blocker before doing anything else.
 
 ## Architectural guardrails
 
