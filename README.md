@@ -76,10 +76,59 @@ Phase 3 lives in `n8n/` as `n8n-nodes-ai-memory-sdk`. The node keeps the archite
 
 The Python SDK and n8n must share access to the configured SQLite path. Text Save uses LiteLLM extraction, Search uses local FastEmbed embeddings, and Forget is scoped by both user ID and memory ID.
 
+## TypeScript client
+
+The optional TypeScript package lives in `typescript/` as `ai-memory-sdk-client`. It is intentionally a thin typed client: the Python SDK remains the source of truth for extraction, conflict resolution, scoring, ranking, embeddings, and persistence.
+
+Install the Python SDK first so the local `memory-sdk-bridge` executable is available, then install/build the TypeScript client:
+
+```bash
+pip install ai-memory-sdk
+cd typescript
+npm install
+npm run build
+```
+
+Create a process-backed client and point it at the same local SQLite database used by Python:
+
+```ts
+import { MemoryClient, ProcessBridgeTransport } from 'ai-memory-sdk-client';
+
+const memory = new MemoryClient(
+  new ProcessBridgeTransport({
+    databasePath: './memory.db',
+  }),
+);
+
+await memory.save({
+  userId: 'user-123',
+  key: 'favorite_language',
+  value: 'Python',
+});
+
+const memories = await memory.retrieve('user-123', { limit: 20 });
+const matches = await memory.search({
+  userId: 'user-123',
+  query: 'programming language',
+  limit: 5,
+});
+
+if (matches[0]) {
+  await memory.forget({
+    userId: 'user-123',
+    memoryId: matches[0].id,
+  });
+}
+```
+
+`ProcessBridgeTransport` defaults to `memory-sdk-bridge` and `./memory.db`; `bridgeCommand`, `databasePath`, and `llmModel` can be overridden when needed. Transport delegation is the architectural boundary: the TypeScript package does not implement a second memory engine.
+
 ## Roadmap
+
+The defined Phase 0–4 roadmap is complete:
 
 - Phase 0: core save/retrieve pipeline.
 - Phase 1: conflict resolution, importance scoring, and time decay.
 - Phase 2: Memory Studio.
 - Phase 3: n8n community node package.
-- Phase 4: optional Postgres + pgvector and TypeScript SDK.
+- Phase 4: optional Postgres + pgvector and thin TypeScript SDK.
