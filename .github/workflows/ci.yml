@@ -76,6 +76,7 @@ jobs:
           N8N_DIAGNOSTICS_ENABLED: 'false'
           N8N_VERSION_NOTIFICATIONS_ENABLED: 'false'
           N8N_COMMUNITY_PACKAGES_ENABLED: 'true'
+          N8N_UNVERIFIED_PACKAGES_ENABLED: 'true'
           N8N_SECURE_COOKIE: 'false'
         run: |
           set -euo pipefail
@@ -85,7 +86,9 @@ jobs:
           N8N_PID=$!
           trap 'kill "$N8N_PID" 2>/dev/null || true; cat "$LOG"' EXIT
 
-          for attempt in $(seq 1 120); do
+          # A fresh n8n profile can spend more than two minutes running first-use
+          # migrations before the editor routes (including the node catalog) are ready.
+          for attempt in $(seq 1 300); do
             if ! kill -0 "$N8N_PID" 2>/dev/null; then
               echo "n8n exited before the node catalog became ready"
               exit 1
