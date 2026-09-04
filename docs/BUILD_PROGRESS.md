@@ -27,18 +27,23 @@
 - Phase 4 Postgres + pgvector Standard-tier slice: backend-neutral `MemoryStore` protocol, optional store injection into `Memory`, `PostgresMemoryStore`, opt-in `postgres` dependency extra, dimension-locked pgvector KNN, and fallback-compatible embedding persistence.
 - Phase 4 Postgres integration validated green on CI run 44 for `943f0aa9a3d6cdd830440f197d384c6f4da4df6e`, including Ruff, Python tests against a real `pgvector/pgvector:pg16` service, n8n build/package validation, and self-hosted n8n runtime smoke.
 - Postgres setup and `Memory(store=...)` usage documented in `README.md`.
+- Phase 4 thin TypeScript client: typed `MemoryClient`, `MemoryTransport` abstraction, `ProcessBridgeTransport`, Save / Retrieve / Search / Forget delegation, unit tests, Python-bridge integration test, npm package validation, and dedicated CI job.
+- TypeScript slice validated green on CI run 48 for `5afb458c36a2a43ba592e43a431f0310925edb96`: Python lint/tests, n8n build/package validation, TypeScript typecheck/tests/bridge integration/package validation, and self-hosted n8n runtime smoke all passed.
+- TypeScript usage documented in the root `README.md` in `e184e7be6db701879cea000a0fd4fc0c06ac415a`.
+- Phase 4 complete.
+- Defined Phase 0–4 roadmap complete.
 
 ## Current milestone
 
-Phase 4 — thin TypeScript SDK client. Implementation is present and pending CI validation; Python remains the source of truth for extraction, conflict resolution, scoring, ranking, and storage semantics.
+No active roadmap milestone. The defined Phase 0–4 scope is complete. Do not broaden scope without a new explicit product decision or roadmap item.
 
 ## Validation status
 
-The prior Postgres documentation/checkpoint runs 45 and 46 are green. The TypeScript slice adds a typed `MemoryClient`, a transport abstraction, a local `ProcessBridgeTransport`, unit tests for protocol delegation, an opt-in process integration test against the installed Python bridge, npm package validation, and a dedicated CI job. No TypeScript storage engine, extraction pipeline, embedding implementation, or ranking logic was introduced. This slice must not be marked complete until the new CI run is green.
+CI run 48 for `5afb458c36a2a43ba592e43a431f0310925edb96` completed successfully across all four jobs: Python test/lint with real Postgres + pgvector service, n8n typecheck/build/package validation, TypeScript typecheck/unit tests/real Python bridge integration/npm package validation, and the self-hosted n8n 2.36.8 runtime registration smoke. The final documentation-only closure commits should be checked for CI status, but they do not alter runtime behavior.
 
 ## Next action
 
-Inspect CI for the TypeScript client implementation. If any job is red, diagnose and fix it before further roadmap work. If all jobs are green, document the TypeScript client in the root README, mark the Phase 4 TypeScript stretch slice complete, and assess whether the defined roadmap is complete rather than broadening scope.
+On the next run, inspect CI for the documentation closure commits first. If green, no further implementation is required under the current roadmap. Stop rather than inventing Phase 5 work. If a documentation-only CI run is red, diagnose and fix it before declaring the repository fully healthy.
 
 ## Architectural guardrails
 
@@ -50,5 +55,5 @@ Inspect CI for the TypeScript client implementation. If any job is red, diagnose
 - LangGraph in-process orchestration.
 - Memory Studio remains local and read-only.
 - n8n integration calls the local Python SDK through a narrow bridge rather than reimplementing memory semantics.
-- TypeScript SDK must remain thin and delegate to Python rather than duplicate memory semantics.
+- TypeScript SDK remains thin and delegates to Python rather than duplicating memory semantics.
 - No hosted SaaS, Kubernetes, Neo4j, Redis, or Celery in the default profile.
