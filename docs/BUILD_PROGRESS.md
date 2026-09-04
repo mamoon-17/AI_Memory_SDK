@@ -29,11 +29,11 @@ Phase 3 — n8n community node package.
 
 ## Validation status
 
-Python tests and the regular n8n typecheck/build/package jobs remain green. Self-hosted n8n 2.36.8 installs and starts on Node 24. CI run 32 for `b36987144dc0dbcc2a4a83851912c0e2e4cecd78` showed that the port-collision fix worked, but the runtime smoke still failed because a fresh n8n profile spent essentially the full 120-second registration polling window running first-use migrations. The runtime log reached `Editor is now accessible via: http://127.0.0.1:5680` immediately after the smoke loop timed out, so the failure was a readiness-window race rather than a package build or process crash. Commit `7962d9306182fab25c86b9c898fcf78d097690db` extends only the registration polling window to 300 seconds and explicitly enables unverified community packages while preserving the exact `aiMemory` + `AI Memory SDK` catalog assertion.
+Python tests and the regular n8n typecheck/build/package jobs remain green. Self-hosted n8n 2.36.8 installs and starts on Node 24. CI runs 33/34 confirmed the previous port and Node-version fixes; the remaining failure is still startup readiness. A fresh n8n profile completed migrations and printed `Editor is now accessible via: http://127.0.0.1:5680` essentially at the same moment the 300-second catalog polling loop expired. No package crash or build failure was observed. Commit `a6fdbb3c852f115ef8bb6bb19fdb039f28b40174` changes the smoke test to wait explicitly for the editor-ready log marker first, then gives the node catalog a separate 60-second registration window. The exact `aiMemory` + `AI Memory SDK` catalog assertion remains unchanged.
 
 ## Next action
 
-Inspect CI for `7962d9306182fab25c86b9c898fcf78d097690db`. If the self-hosted runtime smoke is green and `/types/nodes.json` contains both `aiMemory` and `AI Memory SDK`, mark Phase 3 complete and then begin Phase 4 only as optional stretch work. If it fails after the editor is actually ready, inspect the runtime log and package-loading path rather than increasing timeouts again. Do not weaken the registration assertion, add a hosted service, or duplicate SDK storage logic in TypeScript.
+Inspect CI for `a6fdbb3c852f115ef8bb6bb19fdb039f28b40174`. If the self-hosted runtime smoke is green and `/types/nodes.json` contains both `aiMemory` and `AI Memory SDK`, mark Phase 3 complete and then begin Phase 4 only as optional stretch work. If the editor becomes ready but the node still does not appear during the separate registration window, inspect the community-package loading path and runtime logs rather than increasing readiness timeouts again. Do not weaken the registration assertion, add a hosted service, or duplicate SDK storage logic in TypeScript.
 
 ## Architectural guardrails
 
