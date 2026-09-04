@@ -29,11 +29,11 @@ Phase 3 — n8n community node package.
 
 ## Validation status
 
-Python tests and the regular n8n typecheck/build/package jobs remain green. Self-hosted n8n 2.36.8 installs and starts on Node 24. CI run 30 exposed a concrete runtime configuration bug: the smoke test bound n8n's HTTP server to port `5679`, which is also the task broker's default port. n8n completed database migrations, then exited with `n8n Task Broker's port 5679 is already in use`. Commit `aaa271409ac7e572045d4dad41b878266234c461` moves only the smoke-test HTTP server to port `5680` and keeps the existing `/types/nodes.json` registration assertion intact.
+Python tests and the regular n8n typecheck/build/package jobs remain green. Self-hosted n8n 2.36.8 installs and starts on Node 24. CI run 32 for `b36987144dc0dbcc2a4a83851912c0e2e4cecd78` showed that the port-collision fix worked, but the runtime smoke still failed because a fresh n8n profile spent essentially the full 120-second registration polling window running first-use migrations. The runtime log reached `Editor is now accessible via: http://127.0.0.1:5680` immediately after the smoke loop timed out, so the failure was a readiness-window race rather than a package build or process crash. Commit `7962d9306182fab25c86b9c898fcf78d097690db` extends only the registration polling window to 300 seconds and explicitly enables unverified community packages while preserving the exact `aiMemory` + `AI Memory SDK` catalog assertion.
 
 ## Next action
 
-Inspect CI for `aaa271409ac7e572045d4dad41b878266234c461`. If the self-hosted runtime smoke is green and the public node catalog contains both `aiMemory` and `AI Memory SDK`, mark Phase 3 complete and then begin Phase 4 only as optional stretch work. If it fails, inspect the runtime log and continue fixing actual package loading/registration before any Phase 4 work. Do not weaken the registration assertion, add a hosted service, or duplicate SDK storage logic in TypeScript.
+Inspect CI for `7962d9306182fab25c86b9c898fcf78d097690db`. If the self-hosted runtime smoke is green and `/types/nodes.json` contains both `aiMemory` and `AI Memory SDK`, mark Phase 3 complete and then begin Phase 4 only as optional stretch work. If it fails after the editor is actually ready, inspect the runtime log and package-loading path rather than increasing timeouts again. Do not weaken the registration assertion, add a hosted service, or duplicate SDK storage logic in TypeScript.
 
 ## Architectural guardrails
 
