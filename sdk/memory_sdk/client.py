@@ -89,6 +89,42 @@ class Memory:
                          for f in self.list(user_id=user_id)],
         }, ensure_ascii=False, indent=2)
 
+    def import_json(self, *, user_id: str, data: str) -> list[MemoryFact]:
+        """Validate an entire export before inserting; reject cross-scope restores.
+
+        Existing identical IDs are skipped. Divergent records are rejected rather
+        than overwritten. Backend write failures can still leave a partial import.
+        """
+        if not user_id.strip():
+            raise ValueError("user_id must not be blank")
+        payload = json.loads(data)
+        if not isinstance(payload, dict) or type(payload.get("schema_version")) is not int:
+            raise ValueError("invalid export envelope")
+        if payload["schema_version"] != 1 or payload.get("user_id") != user_id:
+            raise ValueError("unsupported export version or user scope")
+        records = payload.get("memories")
+        if not isinstance(records, list):
+            raise ValueError("memories must be a list")
+        facts = [MemoryFact.model_validate(record) for record in records]
+        if any(fact.user_id != user_id for fact in facts):
+            raise ValueError("every memory must belong to the requested user scope")
+        if len({fact.id for fact in facts}) != len(facts):
+            raise ValueError("duplicate memory IDs in export")
+        existing = {fact.id: fact for fact in self.list(user_id=user_id)}
+        # IDs are globally unique in both built-in stores. Check all other scopes
+        # before writing so an imported ID cannot replace another user's record.
+        for scope in self.store.list_user_ids():
+            if scope != user_id:
+                if any(self.store.get_fact(user_id=scope, fact_id=f.id) for f in facts):
+                    raise ValueError("memory ID belongs to another user scope")
+        for fact in facts:
+            if fact.id in existing and existing[fact.id] != fact:
+                raise ValueError("memory ID already exists with different content")
+        for fact in facts:
+            if fact.id not in existing:
+                self.store.save_fact(fact)
+        return facts
+
     def retrieve(
         self, *, user_id: str, query: str | None = None, limit: int = 10,
         filters: MemoryFilter | None = None,
