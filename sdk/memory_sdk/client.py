@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
+import json
 from math import sqrt
 
 from memory_sdk.adapters import FastEmbedEmbeddingProvider, LiteLLMFactExtractor
@@ -67,6 +68,26 @@ class Memory:
         if fact is None:
             return False
         return self.store.delete_fact(memory_id)
+
+    def list(self, *, user_id: str, filters: MemoryFilter | None = None) -> list[MemoryFact]:
+        """List all matching records in stable creation order without relevance truncation."""
+        if not user_id.strip():
+            raise ValueError("user_id must not be blank")
+        facts = self.store.list_facts(user_id)
+        return sorted(
+            (fact for fact in facts if filters is None or filters.matches(fact)),
+            key=lambda fact: (fact.created_at, fact.id),
+        )
+
+    def export_json(self, *, user_id: str, include_embeddings: bool = False) -> str:
+        """Export one scope; vectors are opt-in to keep backups readable and portable."""
+        exclude = set() if include_embeddings else {"embedding"}
+        return json.dumps({
+            "schema_version": 1,
+            "user_id": user_id,
+            "memories": [f.model_dump(mode="json", exclude=exclude)
+                         for f in self.list(user_id=user_id)],
+        }, ensure_ascii=False, indent=2)
 
     def retrieve(
         self, *, user_id: str, query: str | None = None, limit: int = 10,
