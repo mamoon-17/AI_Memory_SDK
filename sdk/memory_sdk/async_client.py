@@ -13,12 +13,28 @@ class AsyncMemory:
     def __init__(self, memory: Memory | None = None, **kwargs: Any) -> None:
         self._memory = memory if memory is not None else Memory(**kwargs)
         self._executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="memory-sdk")
+        self._closed = False
 
     async def _call(self, method: str, **kwargs: Any) -> Any:
+        if self._closed:
+            raise RuntimeError("AsyncMemory is closed")
         loop = asyncio.get_running_loop()
         return await loop.run_in_executor(
             self._executor, partial(getattr(self._memory, method), **kwargs)
         )
+
+    async def aclose(self) -> None:
+        """Drain outstanding work before releasing the owned worker."""
+        self._closed = True
+        await asyncio.to_thread(self._executor.shutdown, wait=True)
+
+    async def __aenter__(self) -> AsyncMemory:
+        if self._closed:
+            raise RuntimeError("AsyncMemory is closed")
+        return self
+
+    async def __aexit__(self, *exc: Any) -> None:
+        await self.aclose()
 
     async def save(self, *, user_id: str, key: str, value: str, kind: str = "fact",
                    importance: float = 0.5) -> MemoryFact:
