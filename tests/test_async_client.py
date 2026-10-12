@@ -26,6 +26,20 @@ def test_async_io_does_not_block_loop(tmp_path):
         finally:
             release.set()
         assert await task == []
-        client._executor.shutdown()
+        await client.aclose()
+
+    asyncio.run(run())
+
+
+def test_context_manager_drains_and_rejects_closed_calls(tmp_path):
+    import pytest
+
+    async def run():
+        async with AsyncMemory(config=MemoryConfig(database_path=tmp_path / 'memory.db')) as client:
+            fact = await client.save(user_id='alice', key='a', value='b')
+            assert (await client.retrieve(user_id='alice'))[0].id == fact.id
+        await client.aclose()
+        with pytest.raises(RuntimeError, match='closed'):
+            await client.retrieve(user_id='alice')
 
     asyncio.run(run())
