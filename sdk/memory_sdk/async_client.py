@@ -1,4 +1,6 @@
 """Async facade with a serial worker so synchronous providers stay off the event loop."""
+from __future__ import annotations
+
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial
 import asyncio
@@ -51,3 +53,13 @@ class AsyncMemory:
 
     async def forget(self, *, user_id: str, memory_id: str) -> bool:
         return await self._call("forget", user_id=user_id, memory_id=memory_id)
+
+    async def list(self, *, user_id: str, filters: MemoryFilter | None = None) -> list[MemoryFact]:
+        return await self._call("list", user_id=user_id, filters=filters)
+
+    async def export_json(self, *, user_id: str, include_embeddings: bool = False) -> str:
+        return await self._call("export_json", user_id=user_id,
+                                include_embeddings=include_embeddings)
+
+    async def import_json(self, *, user_id: str, data: str) -> list[MemoryFact]:
+        return await self._call("import_json", user_id=user_id, data=data)
