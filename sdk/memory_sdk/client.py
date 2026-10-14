@@ -79,6 +79,11 @@ class Memory:
             key=lambda fact: (fact.created_at, fact.id),
         )
 
+    def forget_all(self, *, user_id: str, filters: MemoryFilter | None = None) -> int:
+        """Delete matching records in one explicit user scope, returning the count."""
+        return sum(self.forget(user_id=user_id, memory_id=fact.id)
+                   for fact in self.list(user_id=user_id, filters=filters))
+
     def export_json(self, *, user_id: str, include_embeddings: bool = False) -> str:
         """Export one scope; vectors are opt-in to keep backups readable and portable."""
         exclude = set() if include_embeddings else {"embedding"}

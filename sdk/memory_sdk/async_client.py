@@ -57,6 +57,9 @@ class AsyncMemory:
     async def list(self, *, user_id: str, filters: MemoryFilter | None = None) -> list[MemoryFact]:
         return await self._call("list", user_id=user_id, filters=filters)
 
+    async def forget_all(self, *, user_id: str, filters: MemoryFilter | None = None) -> int:
+        return await self._call("forget_all", user_id=user_id, filters=filters)
+
     async def export_json(self, *, user_id: str, include_embeddings: bool = False) -> str:
         return await self._call("export_json", user_id=user_id,
                                 include_embeddings=include_embeddings)
