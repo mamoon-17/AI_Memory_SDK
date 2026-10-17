@@ -1,4 +1,6 @@
 export { MemoryClient } from './client.js';
+export { BridgeError } from './errors.js';
+export type { BridgeErrorCode } from './errors.js';
 export { ProcessBridgeTransport } from './processTransport.js';
 export type { ProcessBridgeTransportOptions } from './processTransport.js';
 export type { MemoryTransport } from './transport.js';

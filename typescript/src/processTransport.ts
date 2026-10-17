@@ -2,6 +2,7 @@ import { execFile } from 'node:child_process';
 
 import type { MemoryTransport } from './transport.js';
 import type { BridgeRequest, BridgeResponse } from './types.js';
+import { BridgeError } from './errors.js';
 
 export interface ProcessBridgeTransportOptions {
   bridgeCommand?: string;
@@ -49,7 +50,11 @@ export class ProcessBridgeTransport implements MemoryTransport {
         encoding: 'utf8', shell: false, windowsHide: true,
         timeout: this.timeoutMs, maxBuffer: this.maxBufferBytes, killSignal: 'SIGKILL',
       }, (error, stdout) => {
-        if (error) reject(error);
+        if (error) {
+          const code = error.code === 'ERR_CHILD_PROCESS_STDIO_MAXBUFFER' ? 'OUTPUT_LIMIT'
+            : error.killed ? 'TIMEOUT' : 'PROCESS';
+          reject(new BridgeError(code, `memory-sdk bridge failed: ${code}`, error));
+        }
         else resolve(stdout);
       });
       child.stdin?.on('error', () => { /* execFile reports child failures in its callback. */ });
@@ -57,18 +62,18 @@ export class ProcessBridgeTransport implements MemoryTransport {
     });
     const stdout = output.trim();
     if (!stdout) {
-      throw new Error('memory-sdk bridge returned an empty response');
+      throw new BridgeError('PROTOCOL', 'memory-sdk bridge returned an empty response');
     }
 
     let parsed: unknown;
     try {
       parsed = JSON.parse(stdout);
     } catch (error) {
-      throw new Error('memory-sdk bridge returned invalid JSON', { cause: error });
+      throw new BridgeError('PROTOCOL', 'memory-sdk bridge returned invalid JSON', error);
     }
 
     if (!isRecord(parsed)) {
-      throw new Error('memory-sdk bridge returned an invalid response object');
+      throw new BridgeError('PROTOCOL', 'memory-sdk bridge returned an invalid response object');
     }
     return parsed as unknown as BridgeResponse;
   }
