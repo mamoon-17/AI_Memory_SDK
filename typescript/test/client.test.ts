@@ -86,3 +86,15 @@ test('client rejects mismatched bridge response shapes', async () => {
 
   await assert.rejects(() => client.retrieve('user-1'), /without memories/);
 });
+
+test('client forwards exact filters and explicit lexical mode', async () => {
+  const transport = new RecordingTransport([{ memories: [] }, { memories: [] }]);
+  const client = new MemoryClient(transport);
+  const filters = { kind: 'preference', min_importance: 0.8 };
+  await client.retrieve('alice', { filters });
+  await client.search({ userId: 'alice', query: 'python', filters, mode: 'lexical' });
+  assert.deepEqual(transport.requests, [
+    { operation: 'retrieve', userId: 'alice', filters },
+    { operation: 'search', userId: 'alice', query: 'python', filters, mode: 'lexical' },
+  ]);
+});

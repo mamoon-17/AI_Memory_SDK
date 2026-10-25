@@ -34,6 +34,12 @@ test(
       assert.equal(retrieved.length, 1);
       assert.equal(retrieved[0]?.id, saved[0]?.id);
 
+      const matches = await client.search({
+        userId: 'typescript-user', query: 'TypeScript', mode: 'lexical',
+        filters: { kind: 'preference' },
+      });
+      assert.equal(matches[0]?.id, saved[0]?.id);
+
       assert.equal(
         await client.forget({ userId: 'typescript-user', memoryId: saved[0]!.id }),
         true,
