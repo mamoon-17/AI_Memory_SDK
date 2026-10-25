@@ -10,6 +10,7 @@ export type {
   ForgetInput,
   ForgetResponse,
   MemoryFact,
+  MemoryFilter,
   MemoryListResponse,
   RetrieveOptions,
   SaveInput,

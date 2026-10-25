@@ -47,6 +47,7 @@ export class MemoryClient {
         operation: 'retrieve',
         userId,
         ...(options.limit === undefined ? {} : { limit: options.limit }),
+        ...(options.filters === undefined ? {} : { filters: options.filters }),
       }),
     );
   }
@@ -58,6 +59,8 @@ export class MemoryClient {
         userId: input.userId,
         query: input.query,
         ...(input.limit === undefined ? {} : { limit: input.limit }),
+        ...(input.filters === undefined ? {} : { filters: input.filters }),
+        ...(input.mode === undefined ? {} : { mode: input.mode }),
       }),
     );
   }

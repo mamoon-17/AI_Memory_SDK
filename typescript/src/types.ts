@@ -27,12 +27,22 @@ export type SaveInput = TextSaveInput | StructuredSaveInput;
 
 export interface RetrieveOptions {
   limit?: number;
+  filters?: MemoryFilter;
+}
+
+export interface MemoryFilter {
+  kind?: string;
+  key?: string;
+  min_importance?: number;
+  updated_after?: string;
 }
 
 export interface SearchInput {
   userId: string;
   query: string;
   limit?: number;
+  filters?: MemoryFilter;
+  mode?: 'semantic' | 'lexical';
 }
 
 export interface ForgetInput {
@@ -50,8 +60,9 @@ export type BridgeRequest =
       kind?: string;
       importance?: number;
     }
-  | { operation: 'retrieve'; userId: string; limit?: number }
-  | { operation: 'search'; userId: string; query: string; limit?: number }
+  | { operation: 'retrieve'; userId: string; limit?: number; filters?: MemoryFilter }
+  | { operation: 'search'; userId: string; query: string; limit?: number;
+      filters?: MemoryFilter; mode?: 'semantic' | 'lexical' }
   | { operation: 'forget'; userId: string; memoryId: string };
 
 export interface MemoryListResponse {
