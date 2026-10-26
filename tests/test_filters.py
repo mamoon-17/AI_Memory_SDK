@@ -1,10 +1,9 @@
 from datetime import timedelta
 
 import pytest
-from pydantic import ValidationError
-
 from memory_sdk.filters import MemoryFilter
 from memory_sdk.models import MemoryFact
+from pydantic import ValidationError
 
 
 def test_filter_combines_exact_fields_importance_and_time():

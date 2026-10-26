@@ -1,12 +1,11 @@
 import pytest
-from pydantic import ValidationError
-
 from memory_sdk import MemoryFact
+from pydantic import ValidationError
 
 
 @pytest.mark.parametrize('field', ['id', 'user_id', 'kind', 'key', 'value'])
 def test_blank_record_fields_are_rejected(field):
-    payload = dict(user_id='alice', key='editor', value='vim')
+    payload = {'user_id': 'alice', 'key': 'editor', 'value': 'vim'}
     payload[field] = '  '
     with pytest.raises(ValidationError):
         MemoryFact(**payload)
