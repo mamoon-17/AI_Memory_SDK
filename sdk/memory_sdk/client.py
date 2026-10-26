@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from collections.abc import Iterable
 import json
+from collections.abc import Iterable
 from math import sqrt
 
 from memory_sdk.adapters import FastEmbedEmbeddingProvider, LiteLLMFactExtractor
@@ -109,7 +109,7 @@ class Memory:
             raise ValueError("unsupported export version or user scope")
         records = payload.get("memories")
         if not isinstance(records, list):
-            raise ValueError("memories must be a list")
+            raise TypeError("memories must be a list")
         facts = [MemoryFact.model_validate(record) for record in records]
         if any(fact.user_id != user_id for fact in facts):
             raise ValueError("every memory must belong to the requested user scope")
@@ -119,9 +119,10 @@ class Memory:
         # IDs are globally unique in both built-in stores. Check all other scopes
         # before writing so an imported ID cannot replace another user's record.
         for scope in self.store.list_user_ids():
-            if scope != user_id:
-                if any(self.store.get_fact(user_id=scope, fact_id=f.id) for f in facts):
-                    raise ValueError("memory ID belongs to another user scope")
+            if scope != user_id and any(
+                self.store.get_fact(user_id=scope, fact_id=f.id) for f in facts
+            ):
+                raise ValueError("memory ID belongs to another user scope")
         for fact in facts:
             if fact.id in existing and existing[fact.id] != fact:
                 raise ValueError("memory ID already exists with different content")

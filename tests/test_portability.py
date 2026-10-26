@@ -1,6 +1,6 @@
 import json
-import pytest
 
+import pytest
 from memory_sdk import Memory, MemoryConfig
 
 
@@ -39,8 +39,8 @@ def test_import_rejects_cross_scope_id_without_partial_writes(tmp_path):
     memory = Memory(MemoryConfig(database_path=tmp_path / 'memory.db'))
     bob = memory.save(user_id='bob', key='secret', value='private')
     payload = {'schema_version': 1, 'user_id': 'alice', 'memories': [
-        dict(user_id='alice', key='valid', value='first'),
-        dict(id=bob.id, user_id='alice', key='bad', value='overwrite'),
+        {'user_id': 'alice', 'key': 'valid', 'value': 'first'},
+        {'id': bob.id, 'user_id': 'alice', 'key': 'bad', 'value': 'overwrite'},
     ]}
     with pytest.raises(ValueError, match='another user'):
         memory.import_json(user_id='alice', data=json.dumps(payload))
@@ -50,10 +50,10 @@ def test_import_rejects_cross_scope_id_without_partial_writes(tmp_path):
 
 @pytest.mark.parametrize('changes', [
     {'schema_version': 2}, {'user_id': 'bob'}, {'memories': {}},
-    {'memories': [dict(user_id='bob', key='a', value='b')]},
+    {'memories': [{'user_id': 'bob', 'key': 'a', 'value': 'b'}]},
 ])
 def test_import_rejects_invalid_envelope(tmp_path, changes):
     memory = Memory(MemoryConfig(database_path=tmp_path / 'memory.db'))
     payload = {'schema_version': 1, 'user_id': 'alice', 'memories': []} | changes
-    with pytest.raises(ValueError):
+    with pytest.raises((ValueError, TypeError)):
         memory.import_json(user_id='alice', data=json.dumps(payload))

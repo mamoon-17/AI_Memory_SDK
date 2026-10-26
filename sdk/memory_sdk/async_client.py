@@ -1,10 +1,10 @@
 """Async facade with a serial worker so synchronous providers stay off the event loop."""
 from __future__ import annotations
 
+import asyncio
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial
-import asyncio
-from typing import Any
+from typing import Any, Self
 
 from memory_sdk.client import Memory
 from memory_sdk.filters import MemoryFilter
@@ -30,12 +30,12 @@ class AsyncMemory:
         self._closed = True
         await asyncio.to_thread(self._executor.shutdown, wait=True)
 
-    async def __aenter__(self) -> AsyncMemory:
+    async def __aenter__(self) -> Self:
         if self._closed:
             raise RuntimeError("AsyncMemory is closed")
         return self
 
-    async def __aexit__(self, *exc: Any) -> None:
+    async def __aexit__(self, *exc: object) -> None:
         await self.aclose()
 
     async def save(self, *, user_id: str, key: str, value: str, kind: str = "fact",

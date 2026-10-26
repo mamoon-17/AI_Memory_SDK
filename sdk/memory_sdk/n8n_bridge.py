@@ -21,7 +21,7 @@ def execute(
     operation = str(payload.get("operation", "")).strip().lower()
     raw_user_id = payload.get("userId", "")
     if not isinstance(raw_user_id, str):
-        raise ValueError("userId must be a string")
+        raise TypeError("userId must be a string")
     user_id = raw_user_id.strip()
     if not operation:
         raise ValueError("operation is required")
