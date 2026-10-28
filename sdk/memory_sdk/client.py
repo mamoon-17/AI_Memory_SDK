@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import json
 from collections.abc import Iterable
 from math import sqrt
 
 from memory_sdk.adapters import FastEmbedEmbeddingProvider, LiteLLMFactExtractor
 from memory_sdk.config import MemoryConfig
+from memory_sdk.filters import MemoryFilter
 from memory_sdk.models import MemoryFact
 from memory_sdk.pipeline import MemorySavePipeline
 from memory_sdk.providers import EmbeddingProvider, FactExtractor
@@ -67,7 +69,67 @@ class Memory:
             return False
         return self.store.delete_fact(memory_id)
 
-    def retrieve(self, *, user_id: str, query: str | None = None, limit: int = 10) -> list[MemoryFact]:
+    def list(self, *, user_id: str, filters: MemoryFilter | None = None) -> list[MemoryFact]:
+        """List all matching records in stable creation order without relevance truncation."""
+        if not user_id.strip():
+            raise ValueError("user_id must not be blank")
+        facts = self.store.list_facts(user_id)
+        return sorted(
+            (fact for fact in facts if filters is None or filters.matches(fact)),
+            key=lambda fact: (fact.created_at, fact.id),
+        )
+
+    def export_json(self, *, user_id: str, include_embeddings: bool = False) -> str:
+        """Export one scope; vectors are opt-in to keep backups readable and portable."""
+        exclude = set() if include_embeddings else {"embedding"}
+        return json.dumps({
+            "schema_version": 1,
+            "user_id": user_id,
+            "memories": [f.model_dump(mode="json", exclude=exclude)
+                         for f in self.list(user_id=user_id)],
+        }, ensure_ascii=False, indent=2)
+
+    def import_json(self, *, user_id: str, data: str) -> list[MemoryFact]:
+        """Validate an entire export before inserting; reject cross-scope restores.
+
+        Existing identical IDs are skipped. Divergent records are rejected rather
+        than overwritten. Backend write failures can still leave a partial import.
+        """
+        if not user_id.strip():
+            raise ValueError("user_id must not be blank")
+        payload = json.loads(data)
+        if not isinstance(payload, dict) or type(payload.get("schema_version")) is not int:
+            raise ValueError("invalid export envelope")
+        if payload["schema_version"] != 1 or payload.get("user_id") != user_id:
+            raise ValueError("unsupported export version or user scope")
+        records = payload.get("memories")
+        if not isinstance(records, list):
+            raise TypeError("memories must be a list")
+        facts = [MemoryFact.model_validate(record) for record in records]
+        if any(fact.user_id != user_id for fact in facts):
+            raise ValueError("every memory must belong to the requested user scope")
+        if len({fact.id for fact in facts}) != len(facts):
+            raise ValueError("duplicate memory IDs in export")
+        existing = {fact.id: fact for fact in self.list(user_id=user_id)}
+        # IDs are globally unique in both built-in stores. Check all other scopes
+        # before writing so an imported ID cannot replace another user's record.
+        for scope in self.store.list_user_ids():
+            if scope != user_id and any(
+                self.store.get_fact(user_id=scope, fact_id=f.id) for f in facts
+            ):
+                raise ValueError("memory ID belongs to another user scope")
+        for fact in facts:
+            if fact.id in existing and existing[fact.id] != fact:
+                raise ValueError("memory ID already exists with different content")
+        for fact in facts:
+            if fact.id not in existing:
+                self.store.save_fact(fact)
+        return facts
+
+    def retrieve(
+        self, *, user_id: str, query: str | None = None, limit: int = 10,
+        filters: MemoryFilter | None = None,
+    ) -> list[MemoryFact]:
         """Retrieve user-scoped facts with relevance, importance, and recency ranking."""
         if limit < 1:
             raise ValueError("limit must be at least 1")
@@ -78,7 +140,7 @@ class Memory:
                 raise ValueError("embedding provider must return exactly one query vector")
             query_vector = query_vectors[0]
             candidate_limit = min(max(limit * 4, limit), 100)
-            database_ranked = self.store.search_by_vector(
+            database_ranked = None if filters is not None else self.store.search_by_vector(
                 user_id=user_id,
                 query_vector=query_vector,
                 limit=candidate_limit,
@@ -89,6 +151,8 @@ class Memory:
             query_vector = None
 
         facts = self.store.list_facts(user_id)
+        if filters is not None:
+            facts = [fact for fact in facts if filters.matches(fact)]
         if not query or not query.strip():
             ranked = sorted(facts, key=self._quality_score, reverse=True)
             return ranked[:limit]
