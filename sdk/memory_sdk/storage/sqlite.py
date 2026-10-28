@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import json
 import sqlite3
+from collections.abc import Iterator
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
 
@@ -21,6 +23,15 @@ class SQLiteMemoryStore:
         connection.row_factory = sqlite3.Row
         return connection
 
+    @contextmanager
+    def _transaction(self) -> Iterator[sqlite3.Connection]:
+        connection = self._connect()
+        try:
+            with connection:
+                yield connection
+        finally:
+            connection.close()
+
     def _vector_connection(self) -> tuple[sqlite3.Connection, Any] | None:
         connection = self._connect()
         sqlite_vec = _load_sqlite_vec(connection)
@@ -30,7 +41,7 @@ class SQLiteMemoryStore:
         return connection, sqlite_vec
 
     def _initialize(self) -> None:
-        with self._connect() as connection:
+        with self._transaction() as connection:
             connection.execute(
                 """
                 CREATE TABLE IF NOT EXISTS memory_facts (
@@ -65,7 +76,7 @@ class SQLiteMemoryStore:
             )
 
     def save_fact(self, fact: MemoryFact) -> None:
-        with self._connect() as connection:
+        with self._transaction() as connection:
             connection.execute(
                 """
                 INSERT OR REPLACE INTO memory_facts (
@@ -90,7 +101,7 @@ class SQLiteMemoryStore:
 
     def delete_fact(self, fact_id: str) -> bool:
         """Delete one fact and its vector entry when sqlite-vec is available."""
-        with self._connect() as connection:
+        with self._transaction() as connection:
             row = connection.execute(
                 "SELECT rowid FROM memory_facts WHERE id = ?", (fact_id,)
             ).fetchone()
@@ -116,12 +127,12 @@ class SQLiteMemoryStore:
             finally:
                 connection.close()
 
-        with self._connect() as connection:
+        with self._transaction() as connection:
             cursor = connection.execute("DELETE FROM memory_facts WHERE id = ?", (fact_id,))
             return cursor.rowcount > 0
 
     def list_facts(self, user_id: str) -> list[MemoryFact]:
-        with self._connect() as connection:
+        with self._transaction() as connection:
             rows = connection.execute(
                 """
                 SELECT id, user_id, kind, key, value, importance, embedding_json, created_at, updated_at
@@ -136,7 +147,7 @@ class SQLiteMemoryStore:
 
     def list_user_ids(self) -> list[str]:
         """Return user scopes that currently contain at least one memory."""
-        with self._connect() as connection:
+        with self._transaction() as connection:
             rows = connection.execute(
                 """
                 SELECT DISTINCT user_id
@@ -148,7 +159,7 @@ class SQLiteMemoryStore:
 
     def get_fact(self, *, user_id: str, fact_id: str) -> MemoryFact | None:
         """Return one fact only when it belongs to the requested user scope."""
-        with self._connect() as connection:
+        with self._transaction() as connection:
             row = connection.execute(
                 """
                 SELECT id, user_id, kind, key, value, importance, embedding_json, created_at, updated_at

@@ -8,6 +8,7 @@ from typing import Any
 from memory_sdk.adapters import FastEmbedEmbeddingProvider
 from memory_sdk.client import Memory
 from memory_sdk.config import MemoryConfig
+from memory_sdk.filters import MemoryFilter
 
 
 def _serialize_facts(facts: list[Any]) -> list[dict[str, Any]]:
@@ -18,13 +19,18 @@ def execute(
     payload: dict[str, Any], *, database_path: str, llm_model: str | None = None
 ) -> dict[str, Any]:
     operation = str(payload.get("operation", "")).strip().lower()
-    user_id = str(payload.get("userId", "")).strip()
+    raw_user_id = payload.get("userId", "")
+    if not isinstance(raw_user_id, str):
+        raise TypeError("userId must be a string")
+    user_id = raw_user_id.strip()
     if not operation:
         raise ValueError("operation is required")
     if not user_id:
         raise ValueError("userId is required")
 
     config = MemoryConfig(database_path=database_path, llm_model=llm_model)
+    raw_filters = payload.get("filters")
+    filters = MemoryFilter.model_validate(raw_filters) if raw_filters is not None else None
 
     if operation == "save":
         text = str(payload.get("text", "")).strip()
@@ -51,18 +57,23 @@ def execute(
     if operation == "retrieve":
         limit = int(payload.get("limit", 10))
         memory = Memory(config)
-        return {"memories": _serialize_facts(memory.retrieve(user_id=user_id, limit=limit))}
+        return {"memories": _serialize_facts(
+            memory.retrieve(user_id=user_id, limit=limit, filters=filters)
+        )}
 
     if operation == "search":
         query = str(payload.get("query", "")).strip()
         if not query:
             raise ValueError("search requires query")
         limit = int(payload.get("limit", 10))
-        embedder = FastEmbedEmbeddingProvider(config.embedding_model)
+        mode = payload.get("mode", "semantic")
+        if mode not in {"semantic", "lexical"}:
+            raise ValueError("search mode must be semantic or lexical")
+        embedder = FastEmbedEmbeddingProvider(config.embedding_model) if mode == "semantic" else None
         memory = Memory(config, embedder=embedder)
         return {
             "memories": _serialize_facts(
-                memory.retrieve(user_id=user_id, query=query, limit=limit)
+                memory.retrieve(user_id=user_id, query=query, limit=limit, filters=filters)
             )
         }
 

@@ -53,7 +53,7 @@ jobs:
       - name: Install local Python SDK and bridge
         run: pip install -e .
       - name: Install TypeScript client dependencies
-        run: npm install --prefix typescript --no-audit --no-fund
+        run: npm ci --prefix typescript --no-audit --no-fund
       - name: Typecheck TypeScript client
         run: npm run --prefix typescript typecheck
       - name: Test TypeScript client and Python bridge integration
