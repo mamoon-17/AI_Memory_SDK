@@ -1,5 +1,6 @@
 """Public package surface for AI Memory SDK."""
 
+from .async_client import AsyncMemory
 from .client import Memory
 from .config import MemoryConfig
 from .filters import MemoryFilter
@@ -8,6 +9,7 @@ from .providers import EmbeddingProvider, ExtractedFact, FactExtractor
 from .storage import MemoryStore, PostgresMemoryStore, SQLiteMemoryStore
 
 __all__ = [
+    "AsyncMemory",
     "EmbeddingProvider",
     "ExtractedFact",
     "FactExtractor",

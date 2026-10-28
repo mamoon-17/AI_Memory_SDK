@@ -2,6 +2,16 @@
 
 A local-first, zero-recurring-cost long-term memory engine for AI agents and n8n workflows.
 
+## Developer controls
+
+The Python API includes `MemoryFilter`, complete scoped `list`, versioned JSON
+export/import, `forget_all`, and an `AsyncMemory` facade with a serial worker.
+See [memory controls](docs/MEMORY_CONTROLS.md), [async and privacy](docs/ASYNC_AND_PRIVACY.md),
+and the [developer research and evidence](docs/DEVELOPER_RESEARCH.md).
+
+Structured operations work without API keys. Text extraction uses your configured
+provider and may incur costs; local embedding weights can require an initial download.
+
 ## v1 principles
 
 - Python SDK first.
