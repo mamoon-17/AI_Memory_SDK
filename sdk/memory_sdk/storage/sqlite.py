@@ -79,9 +79,18 @@ class SQLiteMemoryStore:
         with self._transaction() as connection:
             connection.execute(
                 """
-                INSERT OR REPLACE INTO memory_facts (
+                INSERT INTO memory_facts (
                     id, user_id, kind, key, value, importance, embedding_json, created_at, updated_at
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT (id) DO UPDATE SET
+                    user_id = excluded.user_id,
+                    kind = excluded.kind,
+                    key = excluded.key,
+                    value = excluded.value,
+                    importance = excluded.importance,
+                    embedding_json = excluded.embedding_json,
+                    created_at = excluded.created_at,
+                    updated_at = excluded.updated_at
                 """,
                 (
                     fact.id,
