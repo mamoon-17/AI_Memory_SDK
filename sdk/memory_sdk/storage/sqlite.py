@@ -105,8 +105,7 @@ class SQLiteMemoryStore:
                 ),
             )
 
-        if fact.embedding:
-            self._sync_vector(fact)
+        self._sync_vector(fact)
 
     def delete_fact(self, fact_id: str) -> bool:
         """Delete one fact and its vector entry when sqlite-vec is available."""
@@ -224,23 +223,28 @@ class SQLiteMemoryStore:
             connection.close()
 
     def _sync_vector(self, fact: MemoryFact) -> None:
-        if fact.embedding is None:
-            return
-
         vector_connection = self._vector_connection()
         if vector_connection is None:
             return
 
         connection, sqlite_vec = vector_connection
         try:
-            if not self._ensure_vector_table(connection, len(fact.embedding), sqlite_vec):
-                return
             row = connection.execute(
                 "SELECT rowid FROM memory_facts WHERE id = ?", (fact.id,)
             ).fetchone()
             if row is None:
                 return
             rowid = row["rowid"]
+            table = connection.execute(
+                "SELECT 1 FROM sqlite_master WHERE name = 'memory_fact_vectors'"
+            ).fetchone()
+            if table is not None:
+                connection.execute("DELETE FROM memory_fact_vectors WHERE rowid = ?", (rowid,))
+                connection.commit()
+            if fact.embedding is None:
+                return
+            if not self._ensure_vector_table(connection, len(fact.embedding), sqlite_vec):
+                return
             connection.execute("DELETE FROM memory_fact_vectors WHERE rowid = ?", (rowid,))
             connection.execute(
                 """
