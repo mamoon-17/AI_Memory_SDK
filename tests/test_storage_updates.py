@@ -1,3 +1,5 @@
+from contextlib import closing
+
 from memory_sdk import MemoryFact, SQLiteMemoryStore
 
 
@@ -12,6 +14,9 @@ def test_sqlite_update_preserves_row_identity(tmp_path):
         store.save_fact(fact)
     with store._transaction() as connection:
         after = connection.execute('SELECT rowid FROM memory_facts WHERE id = ?', (fact.id,)).fetchone()[0]
+    vector_connection = store._vector_connection()
+    assert vector_connection is not None
+    with closing(vector_connection[0]) as connection:
         count = connection.execute('SELECT count(*) FROM memory_fact_vectors').fetchone()[0]
     assert after == before
     assert count == 1
@@ -27,7 +32,9 @@ def test_sqlite_removing_embedding_removes_index_entry(tmp_path):
     store.save_fact(cleared)
     assert store.get_fact(user_id='alice', fact_id=fact.id) == cleared
     assert store.search_by_vector(user_id='alice', query_vector=[1.0, 0.0], limit=1) == []
-    with store._transaction() as connection:
+    vector_connection = store._vector_connection()
+    assert vector_connection is not None
+    with closing(vector_connection[0]) as connection:
         assert connection.execute('SELECT count(*) FROM memory_fact_vectors').fetchone()[0] == 0
 
 
