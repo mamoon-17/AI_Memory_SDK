@@ -11,6 +11,23 @@ DSN = os.environ.get("MEMORY_SDK_TEST_POSTGRES_DSN")
 pytestmark = pytest.mark.skipif(not DSN, reason="Postgres integration DSN is not configured")
 
 
+@pytest.mark.parametrize('replacement', [None, [1.0, 0.0]])
+def test_postgres_invalidates_obsolete_vectors(replacement) -> None:
+    assert DSN is not None
+    store = PostgresMemoryStore(DSN)
+    user_id = f'postgres-update-{uuid4()}'
+    fact = MemoryFact(user_id=user_id, key='editor', value='vim', embedding=[1.0, 0.0, 0.0])
+    try:
+        store.save_fact(fact)
+        assert store.search_by_vector(user_id=user_id, query_vector=[1.0, 0.0, 0.0], limit=1) == [fact]
+        updated = fact.model_copy(update={'embedding': replacement})
+        store.save_fact(updated)
+        assert store.get_fact(user_id=user_id, fact_id=fact.id) == updated
+        assert store.search_by_vector(user_id=user_id, query_vector=[1.0, 0.0, 0.0], limit=1) == []
+    finally:
+        store.delete_fact(fact.id)
+
+
 def test_postgres_store_crud_vector_search_and_memory_injection() -> None:
     assert DSN is not None
     store = PostgresMemoryStore(DSN)
