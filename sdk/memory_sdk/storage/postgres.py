@@ -85,8 +85,7 @@ class PostgresMemoryStore:
                 ),
             )
 
-        if fact.embedding:
-            self._sync_vector(fact)
+        self._sync_vector(fact)
 
     def delete_fact(self, fact_id: str) -> bool:
         with self._connect() as connection:
@@ -170,10 +169,16 @@ class PostgresMemoryStore:
         return [_fact_from_row(row) for row in rows]
 
     def _sync_vector(self, fact: MemoryFact) -> None:
-        if fact.embedding is None:
-            return
-
         with self._connect() as connection:
+            table = connection.execute(
+                "SELECT to_regclass('memory_fact_vectors') AS table_name"
+            ).fetchone()
+            if table is not None and table["table_name"] is not None:
+                connection.execute(
+                    "DELETE FROM memory_fact_vectors WHERE fact_id = %s", (fact.id,)
+                )
+            if fact.embedding is None:
+                return
             if not self._ensure_vector_table(connection, len(fact.embedding)):
                 return
             connection.execute(
