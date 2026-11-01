@@ -9,6 +9,10 @@ export/import, `forget_all`, and an `AsyncMemory` facade with a serial worker.
 See [memory controls](docs/MEMORY_CONTROLS.md), [async and privacy](docs/ASYNC_AND_PRIVACY.md),
 and the [developer research and evidence](docs/DEVELOPER_RESEARCH.md).
 
+The [November 1 reliability update](docs/RELEASE_NOTES_2026_11_01.md) fixes storage
+upserts and stale vectors, tightens [input contracts](docs/INPUT_CONTRACTS.md), and
+validates TypeScript memory responses at runtime.
+
 Structured operations work without API keys. Text extraction uses your configured
 provider and may incur costs; local embedding weights can require an initial download.
 

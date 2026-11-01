@@ -9,6 +9,7 @@ from memory_sdk.adapters import FastEmbedEmbeddingProvider
 from memory_sdk.client import Memory
 from memory_sdk.config import MemoryConfig
 from memory_sdk.filters import MemoryFilter
+from memory_sdk.validation import validate_limit
 
 
 def _serialize_facts(facts: list[Any]) -> list[dict[str, Any]]:
@@ -55,7 +56,7 @@ def execute(
         return {"memories": [fact.model_dump(mode="json")]}
 
     if operation == "retrieve":
-        limit = int(payload.get("limit", 10))
+        limit = validate_limit(payload.get("limit", 10))
         memory = Memory(config)
         return {"memories": _serialize_facts(
             memory.retrieve(user_id=user_id, limit=limit, filters=filters)
@@ -65,7 +66,7 @@ def execute(
         query = str(payload.get("query", "")).strip()
         if not query:
             raise ValueError("search requires query")
-        limit = int(payload.get("limit", 10))
+        limit = validate_limit(payload.get("limit", 10))
         mode = payload.get("mode", "semantic")
         if mode not in {"semantic", "lexical"}:
             raise ValueError("search mode must be semantic or lexical")

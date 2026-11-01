@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { MemoryClient } from '../src/client.js';
+import { BridgeError } from '../src/errors.js';
 import type { MemoryTransport } from '../src/transport.js';
 import type { BridgeRequest, BridgeResponse, MemoryFact } from '../src/types.js';
 
@@ -97,4 +98,39 @@ test('client forwards exact filters and explicit lexical mode', async () => {
     { operation: 'retrieve', userId: 'alice', filters },
     { operation: 'search', userId: 'alice', query: 'python', filters, mode: 'lexical' },
   ]);
+});
+
+for (const invalid of [
+  null, {}, { ...fact, id: '' }, { ...fact, user_id: 42 },
+  { ...fact, importance: NaN }, { ...fact, importance: 1.1 },
+  { ...fact, created_at: '2026-10-31T12:00:00' },
+  { ...fact, updated_at: 'invalid' }, { ...fact, embedding: [] },
+  { ...fact, embedding: [Infinity] }, { ...fact, embedding: ['1'] },
+]) {
+  test(`client rejects malformed memory record ${JSON.stringify(invalid)}`, async () => {
+    const transport = new RecordingTransport([
+      { memories: [invalid] } as unknown as BridgeResponse,
+    ]);
+    await assert.rejects(new MemoryClient(transport).retrieve('alice'),
+      (error: unknown) => error instanceof BridgeError && error.code === 'PROTOCOL');
+  });
+}
+
+test('client accepts valid numeric vectors and forward-compatible fields', async () => {
+  const record = { ...fact, embedding: [0.5, -0.5], future_field: 'preserved' };
+  const client = new MemoryClient(new RecordingTransport([{ memories: [record] }]));
+  assert.deepEqual(await client.retrieve('user-1'), [record]);
+});
+
+test('client reports malformed envelopes and forgetting responses as protocol errors', async () => {
+  const client = new MemoryClient({
+    async execute() { return null as unknown as BridgeResponse; },
+  });
+  for (const operation of [
+    () => client.retrieve('alice'),
+    () => client.forget({ userId: 'alice', memoryId: 'memory-1' }),
+  ]) {
+    await assert.rejects(operation,
+      (error: unknown) => error instanceof BridgeError && error.code === 'PROTOCOL');
+  }
 });

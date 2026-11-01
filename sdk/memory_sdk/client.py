@@ -13,6 +13,7 @@ from memory_sdk.providers import EmbeddingProvider, FactExtractor
 from memory_sdk.quality import recency_score
 from memory_sdk.storage.base import MemoryStore
 from memory_sdk.storage.sqlite import SQLiteMemoryStore
+from memory_sdk.validation import validate_identifier, validate_limit
 
 
 class Memory:
@@ -42,6 +43,7 @@ class Memory:
         importance: float = 0.5,
     ) -> MemoryFact:
         """Persist one already-structured memory fact for a user."""
+        validate_identifier(user_id)
         fact = MemoryFact(
             user_id=user_id,
             key=key,
@@ -54,6 +56,7 @@ class Memory:
 
     def save_text(self, *, user_id: str, text: str) -> list[MemoryFact]:
         """Extract, score, embed, deduplicate, and store durable facts from unstructured text."""
+        validate_identifier(user_id)
         return self._get_pipeline().save_text(user_id=user_id, text=text)
 
     def save_many(self, facts: Iterable[MemoryFact]) -> list[MemoryFact]:
@@ -64,6 +67,8 @@ class Memory:
 
     def forget(self, *, user_id: str, memory_id: str) -> bool:
         """Delete one memory only when it belongs to the requested user scope."""
+        validate_identifier(user_id)
+        validate_identifier(memory_id, "memory_id")
         fact = self.store.get_fact(user_id=user_id, fact_id=memory_id)
         if fact is None:
             return False
@@ -71,8 +76,7 @@ class Memory:
 
     def list(self, *, user_id: str, filters: MemoryFilter | None = None) -> list[MemoryFact]:
         """List all matching records in stable creation order without relevance truncation."""
-        if not user_id.strip():
-            raise ValueError("user_id must not be blank")
+        validate_identifier(user_id)
         facts = self.store.list_facts(user_id)
         return sorted(
             (fact for fact in facts if filters is None or filters.matches(fact)),
@@ -100,8 +104,7 @@ class Memory:
         Existing identical IDs are skipped. Divergent records are rejected rather
         than overwritten. Backend write failures can still leave a partial import.
         """
-        if not user_id.strip():
-            raise ValueError("user_id must not be blank")
+        validate_identifier(user_id)
         payload = json.loads(data)
         if not isinstance(payload, dict) or type(payload.get("schema_version")) is not int:
             raise ValueError("invalid export envelope")
@@ -136,8 +139,8 @@ class Memory:
         filters: MemoryFilter | None = None,
     ) -> list[MemoryFact]:
         """Retrieve user-scoped facts with relevance, importance, and recency ranking."""
-        if limit < 1:
-            raise ValueError("limit must be at least 1")
+        validate_identifier(user_id)
+        validate_limit(limit)
 
         if query and query.strip() and self.embedder is not None:
             query_vectors = self.embedder.embed([query])

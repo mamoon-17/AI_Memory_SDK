@@ -32,6 +32,11 @@ For text Save, configure a LiteLLM model on `ProcessBridgeTransport` and pass `{
 Custom transports can implement the exported `MemoryTransport` interface when an application needs a different process or IPC boundary while preserving the same bridge request/response protocol.
 # Process reliability and offline search
 
+The client validates complete memory records at runtime, including nonblank IDs,
+finite importance/vector values and timezone-qualified timestamps. Malformed records
+and response envelopes raise `BridgeError` with code `PROTOCOL`, including responses
+from custom transports. Unknown extra fields on valid records are preserved.
+
 `ProcessBridgeTransport` uses asynchronous process execution. Defaults are a 30 second
 timeout and 1 MiB per output stream. Override `timeoutMs` and `maxBufferBytes` with
 positive safe integers. A timed-out process is killed; its write may already have
