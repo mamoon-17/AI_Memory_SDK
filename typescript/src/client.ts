@@ -1,6 +1,7 @@
 import type { MemoryTransport } from './transport.js';
+import { BridgeError } from './errors.js';
+import { isMemoryFact, isRecord } from './validation.js';
 import type {
-  BridgeResponse,
   ForgetInput,
   MemoryFact,
   RetrieveOptions,
@@ -8,9 +9,12 @@ import type {
   SearchInput,
 } from './types.js';
 
-function memoryResponse(response: BridgeResponse): MemoryFact[] {
-  if (!('memories' in response) || !Array.isArray(response.memories)) {
-    throw new Error('memory transport returned a response without memories');
+function memoryResponse(response: unknown): MemoryFact[] {
+  if (!isRecord(response) || !Array.isArray(response.memories)) {
+    throw new BridgeError('PROTOCOL', 'memory transport returned a response without memories');
+  }
+  if (!response.memories.every(isMemoryFact)) {
+    throw new BridgeError('PROTOCOL', 'memory transport returned an invalid memory record');
   }
   return response.memories;
 }
@@ -71,8 +75,8 @@ export class MemoryClient {
       userId: input.userId,
       memoryId: input.memoryId,
     });
-    if (!('forgotten' in response) || typeof response.forgotten !== 'boolean') {
-      throw new Error('memory transport returned a response without forgotten status');
+    if (!isRecord(response) || typeof response.forgotten !== 'boolean') {
+      throw new BridgeError('PROTOCOL', 'memory transport returned a response without forgotten status');
     }
     return response.forgotten;
   }
